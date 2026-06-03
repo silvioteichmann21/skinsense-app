@@ -1,0 +1,341 @@
+/* Hero — centered editorial layout per landing design */
+
+.hero {
+  padding: clamp(3rem, 8vw, 5rem) 0 clamp(2.5rem, 6vw, 4rem);
+  text-align: center;
+}
+
+.heroBadge {
+  display: inline-block;
+  margin: 0 0 1.5rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  background: var(--surface-alt);
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.heroTitle {
+  margin: 0 auto 1.25rem;
+  max-width: 14ch;
+  font-size: clamp(2.5rem, 6vw, 4.5rem);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-heading);
+}
+
+.heroLead {
+  margin: 0 auto 2rem;
+  max-width: 40rem;
+  font-size: clamp(1.0625rem, 2vw, 1.25rem);
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.heroLead strong {
+  color: var(--primary-dark);
+  font-weight: 600;
+}
+
+.heroNote {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: var(--text-soft);
+}
+
+.heroMockup {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+}
+
+/* How it works — app introduction */
+
+.intro {
+  padding: var(--section-gap) 0;
+  background: var(--surface);
+  border-block: 1px solid var(--border);
+}
+
+.introTitle {
+  margin: 0 0 0.75rem;
+  text-align: center;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.introLead {
+  margin: 0 auto 2.5rem;
+  max-width: 40rem;
+  text-align: center;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.introSteps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1.5rem;
+  max-width: 52rem;
+  margin-inline: auto;
+}
+
+@media (min-width: 768px) {
+  .introSteps {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+}
+
+.introStep {
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  background: var(--surface-alt);
+  border: 1px solid rgba(45, 106, 79, 0.12);
+}
+
+.introStepNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  margin-bottom: 0.75rem;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.introStep h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.0625rem;
+  color: var(--primary-dark);
+}
+
+.introStep p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* Clinical analysis — asymmetric two-column */
+
+.clinical {
+  padding: var(--section-gap) 0;
+}
+
+.clinicalGrid {
+  display: grid;
+  gap: 3rem;
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .clinicalGrid {
+    grid-template-columns: 1fr 1.05fr;
+    gap: 4rem;
+  }
+}
+
+.clinicalCopy {
+  text-align: left;
+}
+
+.labelCaps {
+  margin: 0 0 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.clinicalTitle {
+  margin: 0 0 1rem;
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--primary-dark);
+}
+
+.clinicalBody {
+  margin: 0 0 1.75rem;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.clinicalList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.clinicalList li {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.checkIcon {
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+  color: var(--primary);
+}
+
+.clinicalList strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+  color: var(--primary-dark);
+}
+
+.clinicalList p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+/* Daily ritual — three feature cards */
+
+.ritual {
+  padding: var(--section-gap) 0;
+  background: var(--bg);
+}
+
+.ritualTitle {
+  margin: 0 0 0.75rem;
+  text-align: center;
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--primary-dark);
+}
+
+.ritualLead {
+  margin: 0 auto 3rem;
+  max-width: 42rem;
+  text-align: center;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.ritualGrid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .ritualGrid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+}
+
+.ritualCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ritualCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card-hover);
+}
+
+.ritualCardArt {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.ritualCardArt > * {
+  display: block;
+}
+
+.ritualCardBody {
+  padding: 1.5rem;
+  text-align: left;
+}
+
+.ritualCardBody h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--primary-dark);
+}
+
+.ritualCardBody p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.reviewsAnchor {
+  height: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Bottom CTA — mint gradient card */
+
+.ctaSection {
+  padding: 0 0 var(--section-gap);
+}
+
+.ctaCard {
+  text-align: center;
+  padding: clamp(2.5rem, 6vw, 4rem) clamp(1.5rem, 4vw, 3rem);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    135deg,
+    #f0fff4 0%,
+    #d8f3dc 35%,
+    #b7e4c7 70%,
+    #95d5b2 100%
+  );
+  box-shadow: var(--shadow-soft);
+}
+
+.ctaTitle {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+
+.ctaLead {
+  margin: 0 auto 1.75rem;
+  max-width: 36rem;
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
+.ctaNote {
+  margin: 1.25rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-soft);
+}

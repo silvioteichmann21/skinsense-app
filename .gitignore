@@ -1,0 +1,53 @@
+# Dependencies
+node_modules/
+
+# Design exports (Stitch HTML/screens — keep locally, not in repo)
+design/
+
+# Environment & secrets (never commit keys)
+.env
+.env.*
+!.env.example
+web/.env.local
+
+# Expo / React Native
+.expo/
+dist/
+web-build/
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Next.js (marketing site)
+web/.next/
+web/out/
+.vercel
+
+# Native build artifacts (ios/ source is tracked; build outputs are not)
+ios/build/
+ios/Pods/
+android/
+*.ipa
+*.apk
+
+# macOS / editors
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# TypeScript / tooling
+*.tsbuildinfo
+coverage/
+.turbo/
+
+# Logs
+*.log

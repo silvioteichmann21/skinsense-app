@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "SkinSense",
+    "slug": "skinsense",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#2D6A4F"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.skinsense.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "SkinSense needs camera access to capture photos for skin analysis.",
+        "NSPhotoLibraryUsageDescription": "SkinSense can analyze a face photo you choose from your library."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "package": "com.skinsense.app",
+      "permissions": ["CAMERA"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "scheme": "skinsense",
+    "extra": {
+      "API_BASE_URL": "",
+      "SUPABASE_URL": "https://afixdzyeybxgcqpbynud.supabase.co",
+      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmaXhkenlleWJ4Z2NxcGJ5bnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzcwMDEsImV4cCI6MjA5NjAxMzAwMX0.vUUquuJcKB4khjJ6VFlKOokjCRwCzGACaXzFcqYZqPU"
+    },
+    "plugins": [
+      "expo-asset",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SkinSense to use your camera for skin analysis."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow SkinSense to analyze a face photo from your library."
+        }
+      ]
+    ]
+  }
+}

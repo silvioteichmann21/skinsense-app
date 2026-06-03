@@ -1,0 +1,48 @@
+.wrap {
+  position: relative;
+  overflow: hidden;
+}
+
+.img {
+  object-fit: cover;
+  object-position: center;
+}
+
+.clinical {
+  aspect-ratio: 1;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+  background: var(--surface-alt);
+}
+
+.clinical .img {
+  object-fit: cover;
+}
+
+.card {
+  width: 100%;
+  min-height: 200px;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-alt);
+}
+
+.card .img {
+  object-fit: cover;
+}
+
+.heroScan {
+  width: min(100%, 720px);
+  margin-inline: auto;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(160deg, #f0fff4 0%, #ffffff 50%, #d8f3dc 100%);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-hero);
+}
+
+.heroScan .img {
+  object-fit: contain;
+  object-position: center;
+  padding: 1.5rem;
+}
