@@ -35,9 +35,13 @@ Waitlist rows are inserted **only** via the server API using the **service role*
 
 ## Vercel deployment
 
-1. Import the repo in Vercel.
-2. Set **Root Directory** to `web`.
-3. Add environment variables (Production + Preview):
+### Option A (recommended): Root Directory = `web`
+
+1. Import the **SkinSense** GitHub repo in Vercel.
+2. **Settings → General → Root Directory** → set to **`web`** → Save.
+3. **Settings → General → Framework Preset** → **Next.js** (auto-detected).
+4. **Do not** override **Output Directory** — leave it empty / default.
+5. **Settings → Environment Variables** (Production + Preview):
 
    | Variable | Value |
    |----------|--------|
@@ -45,7 +49,20 @@ Waitlist rows are inserted **only** via the server API using the **service role*
    | `SUPABASE_SERVICE_ROLE_KEY` | service role secret (Settings → API) |
    | `WAITLIST_ALLOWED_ORIGINS` | optional, e.g. `https://yourdomain.com` |
 
-4. Deploy.
+6. Redeploy.
+
+### Option B: Repo root (no Root Directory change)
+
+The repo includes a root `vercel.json` and `vercel-build` script so Vercel can build from the monorepo root. Still add the env vars above in the Vercel project.
+
+### Fix “404: NOT_FOUND” on Vercel
+
+That screen usually means the site was **not built as Next.js**:
+
+- Set **Root Directory** to **`web`**, or use Option B after pulling the latest `vercel.json`.
+- Remove any custom **Output Directory** (e.g. `public`, `dist`, `.next`) in project settings.
+- **Framework Preset** must be **Next.js**, not “Other”.
+- Redeploy after changing settings.
 
 ## API
 

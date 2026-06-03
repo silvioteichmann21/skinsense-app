@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
+    "build:web": "npm run build --prefix web",
+    "vercel-build": "npm run build --prefix web",
     "start": "expo start --go",
     "start:dev": "expo start --dev-client",
     "android": "expo run:android",
