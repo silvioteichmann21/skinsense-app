@@ -41,15 +41,21 @@ Waitlist rows are inserted **only** via the server API using the **service role*
 2. **Settings → General → Root Directory** → set to **`web`** → Save.
 3. **Settings → General → Framework Preset** → **Next.js** (auto-detected).
 4. **Do not** override **Output Directory** — leave it empty / default.
-5. **Settings → Environment Variables** (Production + Preview):
+5. **Settings → Environment Variables** — add for **Production** and **Preview** (required for waitlist):
 
    | Variable | Value |
    |----------|--------|
-   | `SUPABASE_URL` | `https://xxxx.supabase.co` |
-   | `SUPABASE_SERVICE_ROLE_KEY` | service role secret (Settings → API) |
+   | `SUPABASE_URL` | `https://afixdzyeybxgcqpbynud.supabase.co` (your project URL) |
+   | `SUPABASE_SERVICE_ROLE_KEY` | **service_role** secret from Supabase → Settings → API (not the anon key) |
    | `WAITLIST_ALLOWED_ORIGINS` | optional, e.g. `https://yourdomain.com` |
 
-6. Redeploy.
+6. **Redeploy** after saving env vars (Deployments → ⋯ → Redeploy). New variables are not applied to old deployments.
+
+7. **Verify:** open `https://YOUR-DEPLOYMENT.vercel.app/api/waitlist` in the browser. You should see:
+   ```json
+   { "ok": true, "missing": [] }
+   ```
+   If `missing` lists variable names, add them in Vercel and redeploy again.
 
 ### Option B: Repo root (no Root Directory change)
 

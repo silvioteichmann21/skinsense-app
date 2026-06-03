@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { corsPreflightResponse, isAllowedWaitlistRequest } from '@/lib/cors';
-import { getWaitlistConfigError } from '@/lib/env';
+import { getMissingWaitlistEnv, getWaitlistConfigError } from '@/lib/env';
 import { getSupabaseAdmin } from '@/lib/supabase/admin';
 import { waitlistBodySchema } from '@/lib/validation/waitlist';
 
 export const runtime = 'nodejs';
+/** Read env at request time on Vercel (not at build). */
+export const dynamic = 'force-dynamic';
 
 function json(
   body: Record<string, unknown>,
@@ -23,6 +25,19 @@ function json(
 
 export async function OPTIONS(req: NextRequest) {
   return corsPreflightResponse(req);
+}
+
+/** Quick check: open /api/waitlist in browser on your deployment. */
+export async function GET() {
+  const missing = getMissingWaitlistEnv();
+  return NextResponse.json({
+    ok: missing.length === 0,
+    missing,
+    hint:
+      missing.length > 0
+        ? 'Add variables in Vercel → Settings → Environment Variables, then Redeploy.'
+        : undefined,
+  });
 }
 
 export async function POST(req: NextRequest) {

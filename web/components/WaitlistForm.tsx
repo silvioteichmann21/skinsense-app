@@ -9,8 +9,16 @@ type Variant = 'inline' | 'card';
 const MESSAGES = {
   success: "You're on the list. We'll email you when SkinSense opens early access.",
   error: 'Something went wrong. Please try again in a moment.',
+  unavailable:
+    'Waitlist sign-up is temporarily unavailable. Please try again in a few minutes.',
   invalid: 'Please enter a valid email address.',
 };
+
+function messageForError(code: string | undefined): string {
+  if (code === 'invalid_email') return MESSAGES.invalid;
+  if (code === 'server_not_configured') return MESSAGES.unavailable;
+  return MESSAGES.error;
+}
 
 export function WaitlistForm({
   variant = 'inline',
@@ -45,7 +53,7 @@ export function WaitlistForm({
 
       if (!res.ok) {
         setStatus('error');
-        setFeedback(data.error === 'invalid_email' ? MESSAGES.invalid : MESSAGES.error);
+        setFeedback(messageForError(data.error));
         return;
       }
 
