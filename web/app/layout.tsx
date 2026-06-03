@@ -19,7 +19,7 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: 'SkinSense — Know your skin. Own your glow.',
   description:
-    'Professional AI skin analysis and personalized routines, delivered to your pocket. Join the waitlist for early access.',
+    'SkinSense scans your face on-device, delivers a clinical-style skin report, and builds a personalized AM/PM routine. Join the waitlist for early access.',
   openGraph: {
     title: 'SkinSense',
     description: 'Botanical precision meets on-device skin intelligence.',

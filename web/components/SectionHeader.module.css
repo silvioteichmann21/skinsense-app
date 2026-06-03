@@ -1,0 +1,42 @@
+.header {
+  margin-bottom: clamp(2rem, 4vw, 3rem);
+}
+
+.alignCenter {
+  text-align: center;
+}
+
+.alignCenter .lead {
+  margin-inline: auto;
+}
+
+.alignLeft {
+  text-align: left;
+}
+
+.eyebrow {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+.title {
+  margin: 0 0 0.85rem;
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  line-height: 1.12;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--primary-dark);
+}
+
+.lead {
+  margin: 0;
+  max-width: 42rem;
+  font-size: clamp(1rem, 2vw, 1.125rem);
+  line-height: 1.65;
+  color: var(--text-muted);
+}
