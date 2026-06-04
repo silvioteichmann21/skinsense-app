@@ -1,6 +1,11 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
+import {
+  PUBLIC_SUPABASE_ANON_KEY,
+  PUBLIC_SUPABASE_URL,
+} from '@/lib/supabase/public-config';
+
 /** Dev-only: reuse mobile app Supabase URL when web/.env.local omits SUPABASE_URL */
 function devSupabaseUrlFromAppJson(): string | undefined {
   if (process.env.NODE_ENV === 'production') return undefined;
@@ -14,44 +19,47 @@ function devSupabaseUrlFromAppJson(): string | undefined {
   }
 }
 
-function readSupabaseUrl(): string | undefined {
+export function readSupabaseUrl(): string {
   return (
     process.env.SUPABASE_URL?.trim() ||
     process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ||
-    devSupabaseUrlFromAppJson()
+    devSupabaseUrlFromAppJson() ||
+    PUBLIC_SUPABASE_URL
   );
 }
 
-function readServiceRoleKey(): string | undefined {
+export function readSupabaseAnonKey(): string {
+  return (
+    process.env.SUPABASE_ANON_KEY?.trim() ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ||
+    PUBLIC_SUPABASE_ANON_KEY
+  );
+}
+
+export function readServiceRoleKey(): string | undefined {
   return process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 }
 
-/** Env vars missing on this deployment (for logs / health check). */
-export function getMissingWaitlistEnv(): string[] {
-  const missing: string[] = [];
-  if (!readSupabaseUrl()) missing.push('SUPABASE_URL');
-  if (!readServiceRoleKey()) missing.push('SUPABASE_SERVICE_ROLE_KEY');
-  return missing;
-}
-
 export function getSupabaseUrl(): string {
-  const url = readSupabaseUrl();
-  if (!url) {
-    throw new Error(
-      'SUPABASE_URL is not configured. Set it in Vercel → Project → Settings → Environment Variables (Production and Preview).',
-    );
-  }
-  return url;
+  return readSupabaseUrl();
 }
 
 export function getSupabaseServiceRoleKey(): string {
   const key = readServiceRoleKey();
   if (!key) {
-    throw new Error(
-      'SUPABASE_SERVICE_ROLE_KEY is not configured. Set the service_role secret in Vercel env vars (not the anon key). Redeploy after saving.',
-    );
+    throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
   }
   return key;
+}
+
+/** Env vars still missing after built-in public fallbacks. */
+export function getMissingWaitlistEnv(): string[] {
+  const missing: string[] = [];
+  if (!readSupabaseUrl()) missing.push('SUPABASE_URL');
+  if (!readServiceRoleKey() && !readSupabaseAnonKey()) {
+    missing.push('SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY');
+  }
+  return missing;
 }
 
 export function getWaitlistConfigError(): string | null {

@@ -16,7 +16,9 @@ const MESSAGES = {
 
 function messageForError(code: string | undefined): string {
   if (code === 'invalid_email') return MESSAGES.invalid;
-  if (code === 'server_not_configured') return MESSAGES.unavailable;
+  if (code === 'server_not_configured' || code === 'database_policy') {
+    return MESSAGES.unavailable;
+  }
   return MESSAGES.error;
 }
 

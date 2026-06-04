@@ -25,13 +25,18 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Supabase
 
-Run in the SQL Editor (once):
+Run in the SQL Editor (in order):
 
 ```text
 supabase/migrations/004_waitlist.sql
+supabase/migrations/005_waitlist_anon_insert.sql
 ```
 
-Waitlist rows are inserted **only** via the server API using the **service role** key (never expose it to the browser).
+Waitlist inserts go through **POST /api/waitlist** only (never from the browser directly).
+
+**Vercel without env vars:** the API falls back to your project’s public anon key (same as `app.json`). Migration **005** must be applied or inserts will fail with `database_policy`.
+
+**Recommended for production:** set `SUPABASE_SERVICE_ROLE_KEY` in Vercel (more secure than anon insert policy).
 
 ## Vercel deployment
 

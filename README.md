@@ -119,6 +119,6 @@ Set `expo.extra.API_BASE_URL` in `app.json` for optional cloud refine.
 
 Landing page + waitlist API live in `web/`. Deploy on Vercel with **Root Directory** = `web`.
 
-1. Run `supabase/migrations/004_waitlist.sql` in the SQL Editor.
+1. Run `supabase/migrations/004_waitlist.sql` and `005_waitlist_anon_insert.sql` in the SQL Editor.
 2. Set Vercel env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (server-only; never `NEXT_PUBLIC_`).
 3. See `web/README.md` for local dev and API details.

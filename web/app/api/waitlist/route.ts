@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { corsPreflightResponse, isAllowedWaitlistRequest } from '@/lib/cors';
 import { getMissingWaitlistEnv, getWaitlistConfigError } from '@/lib/env';
-import { getSupabaseAdmin } from '@/lib/supabase/admin';
+import { getWaitlistSupabase } from '@/lib/supabase/waitlist-client';
 import { waitlistBodySchema } from '@/lib/validation/waitlist';
 
 export const runtime = 'nodejs';
-/** Read env at request time on Vercel (not at build). */
 export const dynamic = 'force-dynamic';
 
 function json(
@@ -27,16 +26,23 @@ export async function OPTIONS(req: NextRequest) {
   return corsPreflightResponse(req);
 }
 
-/** Quick check: open /api/waitlist in browser on your deployment. */
+/** Open /api/waitlist in browser to verify env on Vercel. */
 export async function GET() {
   const missing = getMissingWaitlistEnv();
+  let mode: string | null = null;
+  if (missing.length === 0) {
+    mode = getWaitlistSupabase().mode;
+  }
   return NextResponse.json({
     ok: missing.length === 0,
     missing,
+    mode,
     hint:
       missing.length > 0
-        ? 'Add variables in Vercel → Settings → Environment Variables, then Redeploy.'
-        : undefined,
+        ? 'Add SUPABASE_SERVICE_ROLE_KEY in Vercel, or run migration 005_waitlist_anon_insert.sql for anon fallback.'
+        : mode === 'anon'
+          ? 'Using anon fallback. For production, set SUPABASE_SERVICE_ROLE_KEY in Vercel.'
+          : undefined,
   });
 }
 
@@ -71,7 +77,8 @@ export async function POST(req: NextRequest) {
   const name = parsed.data.name ?? null;
 
   try {
-    const { error } = await getSupabaseAdmin().from('waitlist_signups').insert({
+    const { client, mode } = getWaitlistSupabase();
+    const { error } = await client.from('waitlist_signups').insert({
       email,
       name,
       source: 'landing',
@@ -83,7 +90,10 @@ export async function POST(req: NextRequest) {
       if (error.code === '23505') {
         return json({ ok: true, duplicate: true }, 200, req);
       }
-      console.error('[waitlist] insert failed', error.message);
+      console.error('[waitlist] insert failed', { mode, message: error.message, code: error.code });
+      if (error.code === '42501' || error.message?.includes('policy')) {
+        return json({ error: 'database_policy' }, 503, req);
+      }
       return json({ error: 'server_error' }, 500, req);
     }
 
