@@ -24,9 +24,15 @@ export type RefinedAnalysisPatch = {
   concernAdjustments?: Record<string, { barPercent?: number; severity?: string }>;
 };
 
+export type ScanAngleId = 'front' | 'right' | 'left';
+
+export type AngleImageUris = Partial<Record<ScanAngleId, string>>;
+
 export type StoredScanRecord = SkinAnalysisResult & {
   scoreVector?: SkinScoreVector;
   confidence?: number;
   modelVersion?: string;
   usedCloudRefine?: boolean;
+  /** Persisted angle captures; analysis uses `imageUri` (front). */
+  angleImageUris?: AngleImageUris;
 };

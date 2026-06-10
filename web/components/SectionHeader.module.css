@@ -21,7 +21,7 @@
   font-weight: 400;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--secondary);
+  color: var(--cta-start);
 }
 
 .title {
@@ -30,7 +30,7 @@
   line-height: 1.12;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: var(--primary-dark);
+  color: var(--text-heading);
 }
 
 .lead {

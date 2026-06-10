@@ -1,27 +1,16 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { CompareDeltaRow as Delta } from '@/screens/progress/compareMockData';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles } from '@/theme';
 
 type Props = {
   row: Delta;
   isLast?: boolean;
 };
 
-export function CompareDeltaRow({ row, isLast }: Props) {
-  return (
-    <View style={[styles.row, !isLast && styles.border]}>
-      <Text style={styles.concern}>{row.concern}</Text>
-      <Text style={styles.cell}>{row.before}</Text>
-      <Text style={[styles.cell, styles.cellCurrent]}>{row.after}</Text>
-      <View style={styles.changeWrap}>
-        <Text style={styles.change}>{row.change}</Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -64,3 +53,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
 });
+}
+
+export function CompareDeltaRow({
+ row, isLast }: Props) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={[styles.row, !isLast && styles.border]}>
+      <Text style={styles.concern}>{row.concern}</Text>
+      <Text style={styles.cell}>{row.before}</Text>
+      <Text style={[styles.cell, styles.cellCurrent]}>{row.after}</Text>
+      <View style={styles.changeWrap}>
+        <Text style={styles.change}>{row.change}</Text>
+      </View>
+    </View>
+  );
+}

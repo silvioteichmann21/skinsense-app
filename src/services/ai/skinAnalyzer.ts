@@ -102,13 +102,6 @@ function skinTypeFromVector(
   return fromScan;
 }
 
-function fitzpatrickFromQuiz(quiz: QuizAnswers | null): string {
-  const age = quiz?.ageRange;
-  if (age === 'under-18' || age === '18-24') return 'typeII';
-  if (age === '55-plus') return 'typeIV';
-  return 'typeIII';
-}
-
 function buildConcerns(
   vector: SkinScoreVector,
   quiz: QuizAnswers | null,
@@ -122,17 +115,23 @@ function buildConcerns(
     (quiz?.concerns.includes('uneven-tone') || quiz?.concerns.includes('large-pores') ? 0.15 : 0);
   const barrierScore = 1 - dim(7) - (quiz?.concerns.includes('sensitivity') ? 0.1 : 0);
 
-  const specs: { id: string; name: string; icon: ReportConcern['icon']; raw: number; insight?: string }[] = [
+  const specs: {
+    id: string;
+    name: string;
+    icon: ReportConcern['icon'];
+    raw: number;
+    insightId?: string;
+  }[] = [
     {
       id: 'hydration',
       name: 'Hydration',
       icon: 'water-outline',
       raw: hydrationScore,
-      insight:
+      insightId:
         hydrationScore > 0.4
           ? metrics && metrics.cheekHydrationProxy < 0.45
-            ? 'Cheek zones look drier than your T-zone — extra hydration may help.'
-            : 'Mild dehydration detected around cheeks.'
+            ? 'cheekDrierThanTzone'
+            : 'mildCheeks'
           : undefined,
     },
     {
@@ -140,9 +139,9 @@ function buildConcerns(
       name: 'Acne',
       icon: 'alert-circle-outline',
       raw: acneScore,
-      insight:
+      insightId:
         acneScore > 0.45 && metrics && metrics.tZoneShine > 0.5
-          ? 'T-zone oiliness may be contributing to breakouts.'
+          ? 'tzoneOilBreakouts'
           : undefined,
     },
     {
@@ -150,9 +149,9 @@ function buildConcerns(
       name: 'Texture',
       icon: 'blur',
       raw: textureScore,
-      insight:
+      insightId:
         textureScore > 0.45 && metrics && metrics.textureVariance > 0.5
-          ? 'Uneven texture detected — gentle exfoliation and SPF can help over time.'
+          ? 'unevenExfolSpf'
           : undefined,
     },
     {
@@ -160,7 +159,7 @@ function buildConcerns(
       name: 'Barrier health',
       icon: 'shield-check-outline',
       raw: Math.max(0, 1 - barrierScore),
-      insight: barrierScore > 0.7 ? 'Your moisture barrier is performing well.' : undefined,
+      insightId: barrierScore > 0.7 ? 'performingWell' : undefined,
     },
   ];
 
@@ -173,7 +172,7 @@ function buildConcerns(
       severity,
       severityLabel: label,
       barPercent: Math.min(98, bar),
-      insight: s.insight,
+      insightId: s.insightId,
     };
   });
 }
@@ -206,8 +205,7 @@ export function buildAnalysisFromVector(params: {
     skinScore,
     skinType: typeKey,
     skinTypeId: meta.skinTypeId,
-    fitzpatrick: fitzpatrickFromQuiz(quiz),
-    fitzpatrickId: fitzpatrickFromQuiz(quiz),
+    fitzpatrick: '',
     scannedAt: new Date().toISOString(),
     imageUri: displayImageUri,
     skinTypeDescription: '',

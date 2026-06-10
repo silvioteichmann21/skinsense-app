@@ -4,223 +4,39 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { GradientButton, GradientSurface } from '@/components/ui/GradientButton';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { ConcernRow } from '@/components/report/ConcernRow';
 import { FaceMap } from '@/components/report/FaceMap';
 import { SkinScoreRing } from '@/components/report/SkinScoreRing';
 import type { RootStackParamList } from '@/core/navigation/types';
+import { useReviewPrompt } from '@/hooks/useReviewPrompt';
 import { useLocalizedSkinReport } from '@/i18n/content/useLocalizedSkinReport';
+import { useSkinStore } from '@/store/skinStore';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useScanDateLabel } from '@/i18n/useFormattedDate';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import {
+  radius,
+  shadows,
+  spacing,
+  touchTarget,
+  typography,
+  useAppTheme,
+  useHorizontalCardWidth,
+  useThemedStyles,
+} from '@/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'SkinReport'>;
 type Route = RouteProp<RootStackParamList, 'SkinReport'>;
 
-export function SkinReportScreen() {
-  const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-  const { result: rawResult } = route.params;
-  const result = useLocalizedSkinReport(rawResult);
-  const scanDateLabel = useScanDateLabel(result.scannedAt);
-
-  const nextSteps = useMemo(
-    () => [
-      {
-        id: 'routine' as const,
-        title: t('report.startRoutine'),
-        subtitle: t('report.startRoutineSub'),
-        icon: 'calendar' as const,
-        variant: 'primary' as const,
-      },
-      {
-        id: 'products' as const,
-        title: t('report.exploreProducts'),
-        subtitle: t('report.exploreProductsSub'),
-        icon: 'shopping-outline' as const,
-        variant: 'neutral' as const,
-      },
-      {
-        id: 'scan' as const,
-        title: t('report.scanAgain'),
-        subtitle: t('report.scanAgainSub'),
-        icon: 'camera-outline' as const,
-        variant: 'neutral' as const,
-      },
-    ],
-    [t],
-  );
-
-  const footerBottom = Math.max(insets.bottom, spacing.base);
-
-  return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-
-      <ScreenHeader
-        topInset={insets.top}
-        title={t('report.skinReport')}
-        style={styles.headerBar}
-        right={
-          <Pressable style={styles.avatarBtn} accessibilityLabel="Profile photo">
-            <Image source={{ uri: result.imageUri }} style={styles.headerAvatar} contentFit="cover" />
-          </Pressable>
-        }
-      />
-
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: touchTarget + footerBottom + spacing.xxl },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.scoreCard}>
-          <SkinScoreRing score={result.skinScore} />
-          <View style={styles.scoreMeta}>
-            <Text style={styles.scoreLabel}>{t('report.skinHealthScore')}</Text>
-            <Text style={styles.scoreSub}>
-              {result.skinType} · {result.fitzpatrick}
-            </Text>
-            <View style={styles.dateRow}>
-              <Text style={styles.dateText}>
-                {t('report.scannedOn', { date: scanDateLabel })}
-              </Text>
-              <View style={styles.dot} />
-              <Pressable hitSlop={8}>
-                <Text style={styles.historyLink}>{t('report.viewHistory')}</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.skinTypeCard}>
-          <View style={styles.skinTypeHeader}>
-            <View style={styles.skinTypeIcon}>
-              <MaterialCommunityIcons name="spa" size={22} color={colors.textInverse} />
-            </View>
-            <Text style={styles.skinTypeTitle}>{result.skinType}</Text>
-          </View>
-          <Text style={styles.skinTypeDesc}>{result.skinTypeDescription}</Text>
-          <View style={styles.chipRow}>
-            {result.skinTypeChips.map((chip) => (
-              <View
-                key={chip.label}
-                style={[
-                  styles.chip,
-                  chip.variant === 'primary' ? styles.chipPrimary : styles.chipNeutral,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.chipText,
-                    chip.variant === 'primary' ? styles.chipTextPrimary : styles.chipTextNeutral,
-                  ]}
-                >
-                  {chip.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <Text style={styles.sectionTitle}>{t('report.yourConcerns')}</Text>
-        {result.concerns.map((concern) => (
-          <ConcernRow
-            key={concern.id}
-            concern={concern}
-            onPress={() =>
-              navigation.navigate('ReportDetail', {
-                concernId: concern.id,
-                scanId: result.id,
-                concern,
-                scannedAt: result.scannedAt,
-              })
-            }
-          />
-        ))}
-
-        <FaceMap />
-
-        <Text style={[styles.sectionTitle, styles.sectionSpaced]}>{t('report.whatsWorking')}</Text>
-        <View style={styles.positivesCard}>
-          {result.positives.map((item) => (
-            <View key={item} style={styles.positiveRow}>
-              <View style={styles.positiveIcon}>
-                <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
-              </View>
-              <Text style={styles.positiveText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-
-        <Text style={[styles.sectionTitle, styles.sectionSpaced]}>{t('report.nextSteps')}</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.nextStepsRow}
-        >
-          {nextSteps.map((step) => (
-            <Pressable
-              key={step.id}
-              onPress={
-                step.id === 'routine'
-                  ? () => navigation.navigate('RoutineReveal', { result })
-                  : step.id === 'products'
-                    ? () => navigation.navigate('Products')
-                    : undefined
-              }
-              style={[
-                styles.nextCard,
-                step.variant === 'primary' ? styles.nextCardPrimary : styles.nextCardNeutral,
-              ]}
-            >
-              <MaterialCommunityIcons
-                name={step.icon}
-                size={24}
-                color={step.variant === 'primary' ? colors.textInverse : colors.primary}
-              />
-              <Text
-                style={[
-                  styles.nextTitle,
-                  step.variant === 'primary' && styles.nextTitlePrimary,
-                ]}
-              >
-                {step.title}
-              </Text>
-              <Text
-                style={[
-                  styles.nextSub,
-                  step.variant === 'primary' && styles.nextSubPrimary,
-                ]}
-              >
-                {step.subtitle}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
-        <Pressable
-          onPress={() => navigation.navigate('RoutineReveal', { result })}
-          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-        >
-          <Text style={styles.ctaLabel}>{t('report.seeRoutine')}</Text>
-          <MaterialCommunityIcons name="arrow-right" size={22} color={colors.textInverse} />
-        </Pressable>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -231,10 +47,10 @@ const styles = StyleSheet.create({
   avatarBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
+    borderRadius: radius.full,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
   },
   headerAvatar: {
     width: '100%',
@@ -248,14 +64,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.base,
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.lg,
     padding: spacing.xl,
     marginBottom: spacing.xl,
-    ...shadows.sm,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    ...shadows.md,
   },
   scoreMeta: {
     flex: 1,
+    minWidth: 0,
   },
   scoreLabel: {
     ...typography.label,
@@ -280,8 +99,8 @@ const styles = StyleSheet.create({
   dot: {
     width: 4,
     height: 4,
-    borderRadius: 2,
-    backgroundColor: '#BFC9C1',
+    borderRadius: radius.full,
+    backgroundColor: colors.switchTrackOff,
   },
   historyLink: {
     fontSize: 11,
@@ -335,7 +154,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primaryPale,
   },
   chipNeutral: {
-    backgroundColor: '#DCE2F7',
+    backgroundColor: colors.chipNeutralBg,
   },
   chipText: {
     ...typography.label,
@@ -344,10 +163,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   chipTextPrimary: {
-    color: colors.primaryDark,
+    color: colors.onPrimaryPale,
   },
   chipTextNeutral: {
-    color: colors.textSecondary,
+    color: colors.chipNeutralText,
   },
   sectionTitle: {
     ...typography.h2,
@@ -359,12 +178,13 @@ const styles = StyleSheet.create({
   },
   positivesCard: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    borderRadius: radius.lg,
     padding: spacing.lg,
     gap: spacing.base,
     marginBottom: spacing.xl,
+    ...shadows.sm,
   },
   positiveRow: {
     flexDirection: 'row',
@@ -374,7 +194,7 @@ const styles = StyleSheet.create({
   positiveIcon: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: radius.full,
     backgroundColor: colors.primaryPale,
     alignItems: 'center',
     justifyContent: 'center',
@@ -382,6 +202,8 @@ const styles = StyleSheet.create({
   positiveText: {
     ...typography.h3,
     color: colors.textPrimary,
+    flex: 1,
+    minWidth: 0,
   },
   nextStepsRow: {
     gap: spacing.base,
@@ -389,18 +211,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 2,
   },
   nextCard: {
-    width: 180,
     padding: spacing.lg,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
   },
   nextCardPrimary: {
-    backgroundColor: colors.primary,
-    ...shadows.md,
+    overflow: 'hidden',
   },
   nextCardNeutral: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    ...shadows.sm,
   },
   nextTitle: {
     ...typography.h3,
@@ -416,7 +237,8 @@ const styles = StyleSheet.create({
     color: colors.textTertiary,
   },
   nextSubPrimary: {
-    color: 'rgba(255,255,255,0.8)',
+    color: colors.onPrimary,
+    opacity: 0.85,
   },
   footer: {
     position: 'absolute',
@@ -425,26 +247,259 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: spacing.base,
     paddingTop: spacing.base,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: colors.glassStrong,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderMuted,
+    borderTopColor: colors.hairline,
   },
   cta: {
-    height: touchTarget,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    ...shadows.lg,
+    width: '100%',
   },
-  ctaPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
+  ctaContent: {
+    gap: spacing.sm,
   },
   ctaLabel: {
     ...typography.h3,
     color: colors.textInverse,
   },
 });
+}
+
+export function SkinReportScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const { result: rawResult } = route.params;
+  const result = useLocalizedSkinReport(rawResult);
+  const scanDateLabel = useScanDateLabel(result.scannedAt);
+  const totalScans = useSkinStore((s) => s.analysisHistory.length);
+  const { tryShowPrompt } = useReviewPrompt();
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void tryShowPrompt('first_scan', {
+        totalScans,
+        streakDays: 0,
+        homeVisitCount: 0,
+      });
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, [totalScans, tryShowPrompt]);
+
+  const nextSteps = useMemo(
+    () => [
+      {
+        id: 'routine' as const,
+        title: t('report.startRoutine'),
+        subtitle: t('report.startRoutineSub'),
+        icon: 'calendar' as const,
+        variant: 'primary' as const,
+      },
+      {
+        id: 'science' as const,
+        title: t('report.exploreScience'),
+        subtitle: t('report.exploreScienceSub'),
+        icon: 'book-open-variant' as const,
+        variant: 'neutral' as const,
+      },
+      {
+        id: 'scan' as const,
+        title: t('report.scanAgain'),
+        subtitle: t('report.scanAgainSub'),
+        icon: 'camera-outline' as const,
+        variant: 'neutral' as const,
+      },
+    ],
+    [t],
+  );
+
+  const footerBottom = Math.max(insets.bottom, spacing.base);
+  const nextCardWidth = useHorizontalCardWidth(180, 0.46);
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style={statusBarStyle} />
+
+      <ScreenHeader
+        topInset={insets.top}
+        title={t('report.skinReport')}
+        style={styles.headerBar}
+        right={
+          <Pressable style={styles.avatarBtn} accessibilityLabel="Profile photo">
+            <Image source={{ uri: result.imageUri }} style={styles.headerAvatar} contentFit="cover" />
+          </Pressable>
+        }
+      />
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: touchTarget + footerBottom + spacing.xxl },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.scoreCard}>
+          <View style={{ flexShrink: 0 }}>
+            <SkinScoreRing score={result.skinScore} />
+          </View>
+          <View style={styles.scoreMeta}>
+            <Text style={styles.scoreLabel}>{t('report.skinHealthScore')}</Text>
+            <Text style={styles.scoreSub} numberOfLines={2}>
+              {result.skinType}
+              {result.fitzpatrick ? ` · ${result.fitzpatrick}` : ''}
+            </Text>
+            <View style={styles.dateRow}>
+              <Text style={styles.dateText}>
+                {t('report.scannedOn', { date: scanDateLabel })}
+              </Text>
+              <View style={styles.dot} />
+              <Pressable
+                hitSlop={8}
+                accessibilityRole="link"
+                accessibilityLabel={t('report.viewHistory')}
+                onPress={() => navigation.navigate('SkinProfile')}
+              >
+                <Text style={styles.historyLink}>{t('report.viewHistory')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.skinTypeCard}>
+          <View style={styles.skinTypeHeader}>
+            <View style={styles.skinTypeIcon}>
+              <MaterialCommunityIcons name="spa" size={22} color={colors.textInverse} />
+            </View>
+            <Text style={styles.skinTypeTitle}>{result.skinType}</Text>
+          </View>
+          <Text style={styles.skinTypeDesc}>{result.skinTypeDescription}</Text>
+          <View style={styles.chipRow}>
+            {result.skinTypeChips.map((chip) => (
+              <View
+                key={chip.label}
+                style={[
+                  styles.chip,
+                  chip.variant === 'primary' ? styles.chipPrimary : styles.chipNeutral,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    chip.variant === 'primary' ? styles.chipTextPrimary : styles.chipTextNeutral,
+                  ]}
+                >
+                  {chip.label}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>{t('report.yourConcerns')}</Text>
+        {result.concerns.map((concern) => (
+          <ConcernRow
+            key={concern.id}
+            concern={concern}
+            onPress={() =>
+              navigation.navigate('ReportDetail', {
+                concernId: concern.id,
+                scanId: result.id,
+                concern,
+                scannedAt: result.scannedAt,
+              })
+            }
+          />
+        ))}
+
+        <FaceMap result={result} />
+
+        <Text style={[styles.sectionTitle, styles.sectionSpaced]}>{t('report.whatsWorking')}</Text>
+        <View style={styles.positivesCard}>
+          {result.positives.map((item) => (
+            <View key={item} style={styles.positiveRow}>
+              <View style={styles.positiveIcon}>
+                <MaterialCommunityIcons name="check" size={18} color={colors.primary} />
+              </View>
+              <Text style={styles.positiveText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+
+        <Text style={[styles.sectionTitle, styles.sectionSpaced]}>{t('report.nextSteps')}</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.nextStepsRow}
+        >
+          {nextSteps.map((step) => {
+            const cardBody = (
+              <>
+                <MaterialCommunityIcons
+                  name={step.icon}
+                  size={24}
+                  color={step.variant === 'primary' ? colors.textInverse : colors.primary}
+                />
+                <Text
+                  style={[
+                    styles.nextTitle,
+                    step.variant === 'primary' && styles.nextTitlePrimary,
+                  ]}
+                >
+                  {step.title}
+                </Text>
+                <Text
+                  style={[
+                    styles.nextSub,
+                    step.variant === 'primary' && styles.nextSubPrimary,
+                  ]}
+                >
+                  {step.subtitle}
+                </Text>
+              </>
+            );
+
+            return (
+              <PressableScale
+                key={step.id}
+                haptic="light"
+                onPress={
+                  step.id === 'routine'
+                    ? () => navigation.navigate('RoutineReveal', { result })
+                    : step.id === 'science'
+                      ? () => navigation.navigate('ScienceLibrary')
+                      : step.id === 'scan'
+                        ? () => navigation.navigate('ScanGuide')
+                        : undefined
+                }
+                style={{ width: nextCardWidth }}
+              >
+                {step.variant === 'primary' ? (
+                  <GradientSurface style={[styles.nextCard, styles.nextCardPrimary]}>
+                    {cardBody}
+                  </GradientSurface>
+                ) : (
+                  <View style={[styles.nextCard, styles.nextCardNeutral]}>{cardBody}</View>
+                )}
+              </PressableScale>
+            );
+          })}
+        </ScrollView>
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+        <GradientButton
+          onPress={() => navigation.navigate('RoutineReveal', { result })}
+          style={styles.cta}
+          contentStyle={styles.ctaContent}
+        >
+          <Text style={styles.ctaLabel}>{t('report.seeRoutine')}</Text>
+          <MaterialCommunityIcons name="arrow-right" size={22} color={colors.textInverse} />
+        </GradientButton>
+      </View>
+    </View>
+  );
+}

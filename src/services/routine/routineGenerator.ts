@@ -249,3 +249,13 @@ export function generatePersonalizedRoutine(
 export function getAllRoutineStepDefs(): RoutineStep[] {
   return Object.values(STEP_DEFS);
 }
+
+export function getStepDefsForPeriod(period: 'morning' | 'evening'): RoutineStep[] {
+  return getAllRoutineStepDefs().filter((step) =>
+    period === 'morning' ? step.id.startsWith('am-') : step.id.startsWith('pm-'),
+  );
+}
+
+export function getRoutineStepDef(stepId: string): RoutineStep | undefined {
+  return STEP_DEFS[stepId];
+}

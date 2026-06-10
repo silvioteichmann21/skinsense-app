@@ -16,17 +16,21 @@ const ROOT_FALLBACK: Partial<Record<keyof RootStackParamList, keyof RootStackPar
   ReportDetail: 'SkinReport',
   RoutineReveal: 'SkinReport',
   RoutineStep: 'Main',
-  Products: 'Main',
-  ProductDetail: 'Products',
-  IngredientScanner: 'Products',
-  IngredientScanResult: 'Products',
+  ScienceLibrary: 'Main',
+  IngredientDetail: 'ScienceLibrary',
+  ArticleReader: 'ScienceLibrary',
   AIChat: 'Main',
   EditProfile: 'Main',
   SkinProfile: 'Main',
   Privacy: 'Main',
   Settings: 'Main',
   Compare: 'Main',
+  Notifications: 'Main',
   Language: 'Settings',
+  HelpSupport: 'Main',
+  TermsPrivacy: 'Main',
+  AppFeedback: 'Main',
+  CommunityReviews: 'Main',
 };
 
 const TAB_ROOT_ACTION: Partial<
@@ -49,7 +53,8 @@ export function useAppBack() {
   const route = useRoute();
 
   const routeName = route.name;
-  const showBack = routeName !== 'Splash';
+  const isTabRoot = isTabRoute(routeName);
+  const showBack = routeName !== 'Splash' && !isTabRoot;
 
   const goBack = () => {
     if (navigation.canGoBack()) {

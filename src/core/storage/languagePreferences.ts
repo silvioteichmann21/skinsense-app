@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { detectDeviceLanguageCode } from '@/i18n/detectDeviceLanguage';
 import {
-  DEFAULT_LANGUAGE_CODE,
   normalizeLanguageCode,
   type LanguageCode,
 } from '@/screens/settings/languages';
@@ -19,7 +19,10 @@ export async function getAppLanguage(): Promise<LanguageCode> {
       return normalized;
     }
   }
-  return DEFAULT_LANGUAGE_CODE;
+
+  const detected = detectDeviceLanguageCode();
+  await AsyncStorage.setItem(LANGUAGE_KEY, detected);
+  return detected;
 }
 
 export async function setAppLanguage(code: LanguageCode): Promise<void> {

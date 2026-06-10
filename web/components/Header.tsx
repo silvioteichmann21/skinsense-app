@@ -1,3 +1,7 @@
+import Image from 'next/image';
+
+import { LANDING_IMAGES } from '@/lib/landing-assets';
+
 import styles from './Header.module.css';
 
 export function Header() {
@@ -5,6 +9,14 @@ export function Header() {
     <header className={styles.header}>
       <div className={`container ${styles.inner}`}>
         <a href="#" className={styles.logo}>
+          <Image
+            src={LANDING_IMAGES.appIcon}
+            alt=""
+            width={28}
+            height={28}
+            className={styles.logoIcon}
+            priority
+          />
           SkinSense
         </a>
         <nav className={styles.nav} aria-label="Primary">

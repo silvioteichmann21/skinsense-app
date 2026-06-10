@@ -1,8 +1,10 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { CtaSegment } from '@/components/ui/CtaSegment';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles } from '@/theme';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
@@ -17,72 +19,46 @@ type Props = {
   onChange: (mode: ThemeMode) => void;
 };
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    wrap: {
+      padding: spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderMuted,
+      gap: spacing.md,
+    },
+    title: {
+      ...typography.bodyLg,
+      fontFamily: typography.h3.fontFamily,
+      color: colors.textPrimary,
+    },
+    track: {
+      flexDirection: 'row',
+      padding: 3,
+      backgroundColor: colors.periodTrack,
+      borderRadius: radius.full,
+      gap: 2,
+    },
+  });
+}
+
 export function ThemeSelector({ value, onChange }: Props) {
   const { t } = useTranslation();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <View style={styles.wrap}>
       <Text style={styles.title}>Theme</Text>
       <View style={styles.track}>
-        {OPTIONS.map((opt) => {
-          const active = value === opt.id;
-          return (
-            <Pressable
-              key={opt.id}
-              onPress={() => onChange(opt.id)}
-              style={[styles.option, active && styles.optionActive]}
-            >
-              <Text style={[styles.optionText, active && styles.optionTextActive]}>
-                {t(opt.labelKey)}
-              </Text>
-            </Pressable>
-          );
-        })}
+        {OPTIONS.map((opt) => (
+          <CtaSegment
+            key={opt.id}
+            label={t(opt.labelKey)}
+            active={value === opt.id}
+            onPress={() => onChange(opt.id)}
+          />
+        ))}
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    padding: spacing.lg,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderMuted,
-    gap: spacing.md,
-  },
-  title: {
-    ...typography.bodyLg,
-    fontFamily: typography.h3.fontFamily,
-    color: colors.textPrimary,
-  },
-  track: {
-    flexDirection: 'row',
-    padding: 4,
-    backgroundColor: colors.background,
-    borderRadius: radius.md,
-  },
-  option: {
-    flex: 1,
-    paddingVertical: 6,
-    alignItems: 'center',
-    borderRadius: radius.sm,
-  },
-  optionActive: {
-    backgroundColor: colors.surface,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  optionText: {
-    ...typography.label,
-    color: colors.textSecondary,
-    textTransform: 'none',
-    fontSize: 12,
-  },
-  optionTextActive: {
-    color: colors.primary,
-    fontFamily: typography.h3.fontFamily,
-  },
-});

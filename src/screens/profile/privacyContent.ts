@@ -21,7 +21,7 @@ export const PRIVACY_COLLECT_ITEMS = [
   },
 ] as const;
 
-export const PRIVACY_CLOUD_ITEMS = ['Metric Trends', 'Product Cabinet'] as const;
+export const PRIVACY_CLOUD_ITEMS = ['Metric Trends', 'Routine History'] as const;
 
 export const PRIVACY_FOOTER_LINKS = [
   { id: 'policy', label: 'Privacy Policy' },

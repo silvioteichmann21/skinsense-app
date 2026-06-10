@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
-import { LEARN_ARTICLES, MORNING_ROUTINE_PREVIEW } from '@/screens/home/homeMockData';
+import { ARTICLE_ICONS, ARTICLE_IDS, ARTICLE_TAG_BG } from '@/content/articles';
+import { MORNING_ROUTINE_PREVIEW } from '@/screens/home/homeMockData';
 import {
   concernOptions,
   goalOptions,
@@ -22,11 +23,23 @@ const MENU_KEYS: Record<string, TranslationKey> = {
   skin: 'profile.menu.skinProfile',
   notif: 'profile.menu.notificationSettings',
   privacy: 'profile.menu.privacyData',
-  products: 'profile.menu.products',
+  science: 'profile.menu.scienceGuide',
   settings: 'profile.menu.appSettings',
   help: 'profile.menu.helpSupport',
+  reviews: 'profile.menu.reviewsRatings',
   terms: 'profile.menu.termsPrivacy',
   signout: 'profile.menu.signOut',
+};
+
+const GOAL_KEYS: Record<string, TranslationKey> = {
+  'clearing-acne': 'onboarding.quizOptions.clearingAcne',
+  'anti-aging': 'onboarding.quizOptions.antiAging',
+  brightening: 'onboarding.quizOptions.brightening',
+  hydration: 'onboarding.quizOptions.hydration',
+  'minimizing-pores': 'onboarding.quizOptions.minimizingPores',
+  'calming-redness': 'onboarding.quizOptions.calmingRedness',
+  'natural-clean': 'onboarding.quizOptions.naturalClean',
+  'keeping-simple': 'onboarding.quizOptions.keepingSimple',
 };
 
 const CONCERN_KEYS: Record<string, TranslationKey> = {
@@ -61,8 +74,8 @@ export function useWelcomeSlides(): WelcomeSlide[] {
         id: '1',
         title: t('onboarding.slideKnowSkin'),
         subtitle: t('onboarding.slideKnowSkinSub'),
-        image: require('../../../assets/welcome/slide-1.png'),
-        imageFit: 'cover' as const,
+        image: require('../../../assets/welcome/slide-1-v2.png'),
+        imageFit: 'contain' as const,
         frameStyle: 'glass' as const,
         showAiBadge: true,
       },
@@ -70,7 +83,7 @@ export function useWelcomeSlides(): WelcomeSlide[] {
         id: '2',
         title: t('onboarding.slideRoutines'),
         subtitle: t('onboarding.slideRoutinesSub'),
-        image: require('../../../assets/welcome/slide-2.jpg'),
+        image: require('../../../assets/welcome/slide-2-v2.png'),
         imageFit: 'contain' as const,
         frameStyle: 'solid' as const,
       },
@@ -78,11 +91,23 @@ export function useWelcomeSlides(): WelcomeSlide[] {
         id: '3',
         title: t('onboarding.slideProgress'),
         subtitle: t('onboarding.slideProgressSub'),
-        image: require('../../../assets/welcome/slide-3.jpg'),
-        imageFit: 'cover' as const,
+        image: require('../../../assets/welcome/slide-3-v2.png'),
+        imageFit: 'contain' as const,
         frameStyle: 'glass' as const,
       },
     ],
+    [t],
+  );
+}
+
+export function useLocalizedGoalOptions(): BentoOption[] {
+  const { t } = useTranslation();
+  return useMemo(
+    () =>
+      goalOptions.map((o) => ({
+        ...o,
+        label: t(GOAL_KEYS[o.id] ?? 'onboarding.quizOptions.hydration'),
+      })),
     [t],
   );
 }
@@ -147,19 +172,10 @@ export function useQuizContent() {
       return { ...o, label: t(map[o.id] ?? 'onboarding.quizOptions.under18') };
     });
 
-    const goals: BentoOption[] = goalOptions.map((o) => {
-      const map: Record<string, TranslationKey> = {
-        'clearing-acne': 'onboarding.quizOptions.clearingAcne',
-        'anti-aging': 'onboarding.quizOptions.antiAging',
-        brightening: 'onboarding.quizOptions.brightening',
-        hydration: 'onboarding.quizOptions.hydration',
-        'minimizing-pores': 'onboarding.quizOptions.minimizingPores',
-        'calming-redness': 'onboarding.quizOptions.calmingRedness',
-        'natural-clean': 'onboarding.quizOptions.naturalClean',
-        'keeping-simple': 'onboarding.quizOptions.keepingSimple',
-      };
-      return { ...o, label: t(map[o.id] ?? 'onboarding.quizOptions.hydration') };
-    });
+    const goals: BentoOption[] = goalOptions.map((o) => ({
+      ...o,
+      label: t(GOAL_KEYS[o.id] ?? 'onboarding.quizOptions.hydration'),
+    }));
 
     const steps = [
       {
@@ -203,20 +219,20 @@ export function useHomeArticles() {
   const { t } = useTranslation();
   return useMemo(
     () =>
-      LEARN_ARTICLES.map((a) => {
-        if (a.id === '1') {
-          return {
-            ...a,
-            title: t('home.articles.hydration.title'),
-            tag: t('home.articles.hydration.tag'),
-            readTime: t('home.articles.hydration.readTime'),
-          };
-        }
+      ARTICLE_IDS.map((id) => {
+        const keyMap: Record<string, string> = {
+          '1': 'hydration',
+          '2': 'spf',
+          '3': 'consistency',
+        };
+        const key = keyMap[id];
         return {
-          ...a,
-          title: t('home.articles.spf.title'),
-          tag: t('home.articles.spf.tag'),
-          readTime: t('home.articles.spf.readTime'),
+          id,
+          icon: ARTICLE_ICONS[id],
+          tagBg: ARTICLE_TAG_BG[id],
+          title: t(`home.articles.${key}.title` as TranslationKey),
+          tag: t(`home.articles.${key}.tag` as TranslationKey),
+          readTime: t(`home.articles.${key}.readTime` as TranslationKey),
         };
       }),
     [t],
@@ -250,7 +266,7 @@ export function usePrivacyContent() {
         { id: 'scores', title: t('privacy.collectScores'), body: t('privacy.collectScoresBody') },
         { id: 'routine', title: t('privacy.collectRoutine'), body: t('privacy.collectRoutineBody') },
       ],
-      cloud: [t('privacy.cloudMetricTrends'), t('privacy.cloudProductCabinet')],
+      cloud: [t('privacy.cloudMetricTrends'), t('privacy.cloudRoutineSync')],
       footer: [
         { id: 'policy', label: t('privacy.footerPrivacy') },
         { id: 'gdpr', label: t('privacy.footerGdpr') },

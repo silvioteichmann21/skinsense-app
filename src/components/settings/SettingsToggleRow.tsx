@@ -1,6 +1,7 @@
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { spacing, typography, useAppTheme, useThemedStyles } from '@/theme';
 
 type Props = {
   label: string;
@@ -10,6 +11,36 @@ type Props = {
   isLast?: boolean;
 };
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: spacing.lg,
+      gap: spacing.md,
+    },
+    border: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.borderMuted,
+    },
+    copy: {
+      flex: 1,
+      gap: 2,
+    },
+    label: {
+      ...typography.bodyLg,
+      fontFamily: typography.h3.fontFamily,
+      color: colors.textPrimary,
+    },
+    subtitle: {
+      fontFamily: typography.score.fontFamily,
+      fontSize: 13,
+      color: colors.primary,
+    },
+  });
+}
+
 export function SettingsToggleRow({
   label,
   subtitle,
@@ -17,6 +48,9 @@ export function SettingsToggleRow({
   onValueChange,
   isLast,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   return (
     <View style={[styles.row, !isLast && styles.border]}>
       <View style={styles.copy}>
@@ -26,38 +60,10 @@ export function SettingsToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: '#BFC9C1', true: colors.primaryPale }}
-        thumbColor={value ? colors.primary : colors.white}
-        ios_backgroundColor="#BFC9C1"
+        trackColor={{ false: colors.switchTrackOff, true: colors.switchTrackOn }}
+        thumbColor={colors.white}
+        ios_backgroundColor={colors.switchTrackOff}
       />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: spacing.lg,
-    gap: spacing.md,
-  },
-  border: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(229, 231, 235, 0.5)',
-  },
-  copy: {
-    flex: 1,
-    gap: 2,
-  },
-  label: {
-    ...typography.bodyLg,
-    fontFamily: typography.h3.fontFamily,
-    color: colors.textPrimary,
-  },
-  subtitle: {
-    fontFamily: typography.score.fontFamily,
-    fontSize: 13,
-    color: colors.primary,
-  },
-});

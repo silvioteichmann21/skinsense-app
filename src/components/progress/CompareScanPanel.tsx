@@ -3,7 +3,8 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { CompareScanOption } from '@/screens/progress/compareMockData';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Props = {
   scan: CompareScanOption;
@@ -11,26 +12,8 @@ type Props = {
   variant?: 'initial' | 'current';
 };
 
-export function CompareScanPanel({ scan, onPickDate, variant = 'initial' }: Props) {
-  const isCurrent = variant === 'current';
-
-  return (
-    <View style={styles.wrap}>
-      <View style={styles.photoWrap}>
-        <Image source={{ uri: scan.imageUri }} style={styles.photo} contentFit="cover" />
-        <View style={[styles.badge, isCurrent ? styles.badgeCurrent : styles.badgeInitial]}>
-          <Text style={styles.badgeText}>{scan.badge}</Text>
-        </View>
-      </View>
-      <Pressable style={styles.dateBtn} onPress={onPickDate}>
-        <Text style={styles.dateText}>{scan.dateLabel}</Text>
-        <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textSecondary} />
-      </Pressable>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: {
     flex: 1,
     gap: spacing.md,
@@ -75,7 +58,7 @@ const styles = StyleSheet.create({
     height: 48,
     paddingHorizontal: spacing.md,
     borderRadius: radius.md,
-    backgroundColor: '#F1F3FF',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.borderMuted,
   },
@@ -86,3 +69,26 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 });
+}
+
+export function CompareScanPanel({
+ scan, onPickDate, variant = 'initial' }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  const isCurrent = variant === 'current';
+
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.photoWrap}>
+        <Image source={{ uri: scan.imageUri }} style={styles.photo} contentFit="cover" />
+        <View style={[styles.badge, isCurrent ? styles.badgeCurrent : styles.badgeInitial]}>
+          <Text style={styles.badgeText}>{scan.badge}</Text>
+        </View>
+      </View>
+      <Pressable style={styles.dateBtn} onPress={onPickDate}>
+        <Text style={styles.dateText}>{scan.dateLabel}</Text>
+        <MaterialCommunityIcons name="chevron-down" size={18} color={colors.textSecondary} />
+      </Pressable>
+    </View>
+  );
+}

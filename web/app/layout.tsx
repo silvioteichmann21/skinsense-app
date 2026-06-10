@@ -19,12 +19,19 @@ const spaceMono = Space_Mono({
 export const metadata: Metadata = {
   title: 'SkinSense — Know your skin. Own your glow.',
   description:
-    'SkinSense scans your face on-device, delivers a clinical-style skin report, and builds a personalized AM/PM routine. Join the waitlist for early access.',
-  openGraph: {
-    title: 'SkinSense',
-    description: 'Botanical precision meets on-device skin intelligence.',
-    type: 'website',
+    'Guided 3-angle face scan, on-device analysis, zone-by-zone skin report, and personalized AM/PM routines. Join the waitlist for early access.',
+  icons: {
+    icon: '/images/landing/app-icon-v2.png',
+    apple: '/images/landing/app-icon-v2.png',
   },
+  openGraph: {
+    title: 'SkinSense — Know your skin. Own your glow.',
+    description:
+      'Guided face scan, clinical-style report, and personalized routines—private, on your device.',
+    type: 'website',
+    images: [{ url: '/images/landing/guide-hero-v2.png', width: 1200, height: 1200, alt: 'SkinSense app' }],
+  },
+  themeColor: '#000000',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

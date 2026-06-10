@@ -2,25 +2,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { useTranslation } from '@/i18n/useTranslation';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
-export function ChatDisclaimer() {
-  const { t } = useTranslation();
-
-  return (
-    <View style={styles.wrap}>
-      <MaterialCommunityIcons name="information" size={20} color={colors.accent} />
-      <Text style={styles.text}>{t('chat.disclaimer')}</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: spacing.md,
-    backgroundColor: '#F1F3FF',
+    backgroundColor: colors.surfaceMuted,
     borderWidth: 1,
     borderColor: colors.borderMuted,
     borderRadius: radius.lg,
@@ -35,3 +26,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
+}
+
+export function ChatDisclaimer() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.wrap}>
+      <MaterialCommunityIcons name="information" size={20} color={colors.accent} />
+      <Text style={styles.text}>{t('chat.disclaimer')}</Text>
+    </View>
+  );
+}

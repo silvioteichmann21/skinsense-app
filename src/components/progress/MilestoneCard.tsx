@@ -2,40 +2,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { Milestone } from '@/screens/progress/progressMockData';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Props = {
   milestone: Milestone;
   onPress?: () => void;
 };
 
-export function MilestoneCard({ milestone, onPress }: Props) {
-  const locked = !milestone.unlocked;
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.card,
-        locked && styles.cardLocked,
-        pressed && styles.pressed,
-      ]}
-    >
-      <View style={[styles.iconWrap, locked && styles.iconWrapLocked]}>
-        <MaterialCommunityIcons
-          name={milestone.icon}
-          size={26}
-          color={locked ? colors.textTertiary : colors.primary}
-        />
-      </View>
-      <Text style={[styles.label, locked && styles.labelLocked]} numberOfLines={2}>
-        {milestone.label}
-      </Text>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   card: {
     flex: 1,
     minWidth: '30%',
@@ -79,3 +55,33 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 });
+}
+
+export function MilestoneCard({
+ milestone, onPress }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  const locked = !milestone.unlocked;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        locked && styles.cardLocked,
+        pressed && styles.pressed,
+      ]}
+    >
+      <View style={[styles.iconWrap, locked && styles.iconWrapLocked]}>
+        <MaterialCommunityIcons
+          name={milestone.icon}
+          size={26}
+          color={locked ? colors.textTertiary : colors.primary}
+        />
+      </View>
+      <Text style={[styles.label, locked && styles.labelLocked]} numberOfLines={2}>
+        {milestone.label}
+      </Text>
+    </Pressable>
+  );
+}

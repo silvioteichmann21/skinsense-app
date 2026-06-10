@@ -9,21 +9,29 @@ export const fontFamilies = {
 } as const;
 
 export const typography = {
+  display: {
+    fontFamily: fontFamilies.heading,
+    fontSize: 34,
+    lineHeight: 40,
+    letterSpacing: -0.6,
+  },
   h1: {
     fontFamily: fontFamilies.heading,
     fontSize: 28,
     lineHeight: 36,
-    letterSpacing: -0.3,
+    letterSpacing: -0.4,
   },
   h2: {
     fontFamily: fontFamilies.heading,
     fontSize: 22,
     lineHeight: 30,
+    letterSpacing: -0.3,
   },
   h3: {
     fontFamily: fontFamilies.subhead,
     fontSize: 18,
     lineHeight: 26,
+    letterSpacing: -0.2,
   },
   bodyLg: {
     fontFamily: fontFamilies.bodyMed,

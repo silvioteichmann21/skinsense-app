@@ -1,9 +1,8 @@
 export type ConcernTrend = 'up' | 'down' | 'stable' | 'none';
 
-export type SkinProfileConcern = {
+export type SkinProfileConcernSource = {
   id: string;
-  name: string;
-  severityLabel: 'MEDIUM' | 'LOW' | 'NONE';
+  severity: 'medium' | 'low' | 'none';
   barPercent: number;
   trend: ConcernTrend;
 };
@@ -14,11 +13,48 @@ export type FitzpatrickTone = {
   labelColor: string;
 };
 
-export type ScanHistoryEntry = {
+export type ScanHistorySource = {
   id: string;
   score: number;
-  dateLabel: string;
-  scanType: string;
+  scannedAt: string;
+  scanTypeId: string;
+};
+
+/** Language-neutral IDs — labels come from i18n at render time. */
+export const SKIN_PROFILE_SOURCE = {
+  skinTypeId: 'combination' as const,
+  chipIds: ['tZoneOily', 'cheeksNormal', 'seasonalDryness'] as const,
+  fitzpatrickType: 3,
+  fitzpatrickId: 'typeIII' as const,
+  concerns: [
+    { id: 'hydration', severity: 'medium', barPercent: 66, trend: 'up' },
+    { id: 'acne', severity: 'low', barPercent: 25, trend: 'down' },
+    { id: 'texture', severity: 'low', barPercent: 25, trend: 'stable' },
+    { id: 'redness', severity: 'none', barPercent: 0, trend: 'none' },
+    { id: 'dark-spots', severity: 'none', barPercent: 0, trend: 'none' },
+  ] satisfies SkinProfileConcernSource[],
+  sensitivityIds: ['fragrance', 'alcohol', 'essentialOils'] as const,
+  preferenceIds: ['vegan', 'fragranceFree'] as const,
+  scanHistory: [
+    {
+      id: 'h1',
+      score: 74,
+      scannedAt: '2026-06-03T12:00:00.000Z',
+      scanTypeId: 'fullFace',
+    },
+    {
+      id: 'h2',
+      score: 71,
+      scannedAt: '2026-05-20T12:00:00.000Z',
+      scanTypeId: 'morningQuick',
+    },
+    {
+      id: 'h3',
+      score: 68,
+      scannedAt: '2026-05-05T12:00:00.000Z',
+      scanTypeId: 'initial',
+    },
+  ] satisfies ScanHistorySource[],
 };
 
 export const FITZPATRICK_TONES: FitzpatrickTone[] = [
@@ -30,57 +66,18 @@ export const FITZPATRICK_TONES: FitzpatrickTone[] = [
   { type: 6, color: '#4B2C20', labelColor: '#F3F4F6' },
 ];
 
+/** @deprecated Use SKIN_PROFILE_SOURCE + useLocalizedSkinProfile */
 export const SKIN_PROFILE = {
   skinType: 'Combination Skin',
   skinTypeDescription:
     'Your skin exhibits varying levels of sebum production. Typically, you experience oiliness in the T-zone while the cheeks remain balanced or slightly dry.',
   skinTypeChips: ['T-zone oily', 'Cheeks normal', 'Seasonal dryness'],
-  fitzpatrickType: 3,
+  fitzpatrickType: SKIN_PROFILE_SOURCE.fitzpatrickType,
   fitzpatrickLabel: 'Type III',
   fitzpatrickDescription:
     'Sometimes burns, tans gradually. Creamy white to olive skin tone.',
-  concerns: [
-    {
-      id: 'hydration',
-      name: 'Hydration',
-      severityLabel: 'MEDIUM',
-      barPercent: 66,
-      trend: 'up',
-    },
-    {
-      id: 'acne',
-      name: 'Acne',
-      severityLabel: 'LOW',
-      barPercent: 25,
-      trend: 'down',
-    },
-    {
-      id: 'texture',
-      name: 'Texture',
-      severityLabel: 'LOW',
-      barPercent: 25,
-      trend: 'stable',
-    },
-    {
-      id: 'redness',
-      name: 'Redness',
-      severityLabel: 'NONE',
-      barPercent: 0,
-      trend: 'none',
-    },
-    {
-      id: 'dark-spots',
-      name: 'Dark Spots',
-      severityLabel: 'NONE',
-      barPercent: 0,
-      trend: 'none',
-    },
-  ] satisfies SkinProfileConcern[],
+  concerns: [],
   sensitivities: ['Fragrance', 'Alcohol', 'Essential oils'],
   preferences: ['Vegan', 'Fragrance-free'],
-  scanHistory: [
-    { id: 'h1', score: 74, dateLabel: 'Jun 3, 2026', scanType: 'Full Face Analysis' },
-    { id: 'h2', score: 71, dateLabel: 'May 20, 2026', scanType: 'Morning Quick-Check' },
-    { id: 'h3', score: 68, dateLabel: 'May 5, 2026', scanType: 'Initial Assessment' },
-  ] satisfies ScanHistoryEntry[],
+  scanHistory: [],
 };

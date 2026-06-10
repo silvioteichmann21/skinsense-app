@@ -16,7 +16,7 @@ import { LANDING_IMAGES } from '@/lib/landing-assets';
 import styles from './page.module.css';
 
 const HERO_STATS = [
-  { value: '15+', label: 'Skin signals analyzed per scan' },
+  { value: '3 angles', label: 'Guided front, right & left capture' },
   { value: '100%', label: 'On-device photo processing' },
   { value: 'AM & PM', label: 'Personalized daily routines' },
 ];
@@ -24,34 +24,34 @@ const HERO_STATS = [
 const APP_STEPS = [
   {
     step: '01',
-    title: 'Scan your face',
+    title: 'Scan in three guided angles',
     icon: IconScan,
-    body: 'Open the guided camera in natural light. SkinSense aligns your face, crops securely, and analyzes hydration, texture, sensitivity, and more—all on your phone.',
+    body: 'Tap once and follow on-screen arrows. SkinSense detects when your pose is right, captures front, right, and left views, and analyzes your front scan on-device—no uploads for analysis.',
   },
   {
     step: '02',
     title: 'Read your skin report',
     icon: IconReport,
-    body: 'Get an easy-to-read health score, skin type, and concern breakdown in seconds. Every metric is explained so you understand what it means for your routine.',
+    body: 'Get a skin health score, Fitzpatrick-aware insights, and zone-by-zone breakdowns for forehead, cheeks, nose, and chin—explained in plain language.',
   },
   {
     step: '03',
     title: 'Follow your routine',
     icon: IconRoutine,
-    body: 'Receive morning and evening steps matched to your scan plus onboarding quiz. Check off products daily and rescan to track real progress over weeks.',
+    body: 'Morning and evening steps matched to your scan and onboarding quiz. Check off products daily, compare scans over time, and watch your score trend.',
   },
 ];
 
 const IN_APP_FEATURES = [
   {
-    title: 'On-device face analysis',
-    body: 'Vision models run locally. Your selfies are not uploaded to SkinSense servers for analysis.',
+    title: 'Guided 3-angle capture',
+    body: 'Pose detection with live arrows and progress—no timer gimmicks. Side photos are stored on your device for future multi-angle insights.',
     icon: IconScan,
     wide: true,
   },
   {
-    title: 'Skin health score',
-    body: 'One number to track overall condition, with detail on hydration, barrier, and texture.',
+    title: 'Skin health score & trends',
+    body: 'A single score to track overall condition, with gradient progress charts and period toggles for 30, 90, and 180 days.',
     icon: IconSparkle,
     wide: false,
   },
@@ -68,8 +68,8 @@ const IN_APP_FEATURES = [
     wide: false,
   },
   {
-    title: 'Progress & compare scans',
-    body: 'Side-by-side visits show what changed—so you know if your routine is working.',
+    title: 'Compare scans & timeline',
+    body: 'Side-by-side visits and a photo timeline show what changed—so you know if your routine is working.',
     icon: IconCheck,
     wide: false,
   },
@@ -91,8 +91,8 @@ const CLINICAL_POINTS = [
     body: 'Processing stays on your phone. Only anonymized scores sync when you choose to sign in.',
   },
   {
-    title: 'Clinical-style clarity',
-    body: 'Reports use dermatological language made simple—strengths, concerns, and what to prioritize.',
+    title: 'Zone-level clarity',
+    body: 'Regional summaries highlight where oil, hydration, texture, or redness need attention—without overwhelming overlays.',
   },
 ];
 
@@ -101,19 +101,19 @@ const RITUAL_CARDS = [
     title: 'Personalized routines',
     body: 'Cleanser, treatment, and moisturizer steps chosen for your skin type, concerns, climate, and goals.',
     image: LANDING_IMAGES.routineProducts,
-    alt: 'Personalized skincare routine products',
+    alt: 'SkinSense personalized skincare routine screen',
   },
   {
     title: 'Real progress tracking',
-    body: 'Before-and-after scans and trend lines for hydration and glow—see change, not vanity metrics.',
+    body: 'Score trend charts, milestones, and before-and-after compare—see change, not vanity metrics.',
     image: LANDING_IMAGES.progress,
-    alt: 'Before and after skin analysis',
+    alt: 'SkinSense progress and score trend chart',
   },
   {
-    title: 'Guided skin insights',
-    body: 'In-app coaching explains each result so you know why SPF, hydration, or barrier care matters for you.',
+    title: 'Beautiful, focused UI',
+    body: 'Vibrant gradient CTAs, dark-mode polish, and coaching that explains each result so you know what to do next.',
     image: LANDING_IMAGES.expertGuidance,
-    alt: 'Guided in-app skin analysis',
+    alt: 'SkinSense home screen with skin health score',
   },
 ];
 
@@ -142,9 +142,9 @@ export default function LandingPage() {
                 <span className={styles.heroTitleAccent}> Own your glow.</span>
               </h1>
               <p className={styles.heroLead}>
-                <strong>SkinSense</strong> is a mobile app that turns a 60-second face scan
+                <strong>SkinSense</strong> is a mobile app that turns a guided 60-second face scan
                 into a clinical-style skin report and a personalized AM/PM routine—private,
-                on your device, built for real results.
+                on your device, with a UI built to feel as good as it works.
               </p>
               <WaitlistForm variant="inline" id="hero" />
               <p className={styles.heroNote}>
@@ -163,7 +163,7 @@ export default function LandingPage() {
               <div className={styles.heroVisualGlow} aria-hidden />
               <LandingImage
                 src={LANDING_IMAGES.appScan}
-                alt="SkinSense in-app face scan with analysis guides"
+                alt="SkinSense guided face scan with gradient scan button"
                 variant="heroScan"
                 priority
               />
@@ -201,9 +201,9 @@ export default function LandingPage() {
                 <p className={styles.aboutHighlightLabel}>You get in every session</p>
                 <ul>
                   <li>Instant skin health score</li>
-                  <li>Hydration, texture & sensitivity readout</li>
+                  <li>Zone-by-zone regional analysis</li>
                   <li>Personalized morning & evening steps</li>
-                  <li>Progress when you rescan</li>
+                  <li>Progress charts when you rescan</li>
                 </ul>
               </aside>
             </div>
@@ -267,7 +267,7 @@ export default function LandingPage() {
             <div className={styles.clinicalVisual}>
               <LandingImage
                 src={LANDING_IMAGES.clinical}
-                alt="Clinical face scan with dermatological analysis grid"
+                alt="SkinSense home screen with skin health score and scan CTA"
                 variant="clinical"
               />
             </div>
@@ -323,8 +323,9 @@ export default function LandingPage() {
               <div>
                 <h2>Your face stays on your phone</h2>
                 <p>
-                  Scan images are processed on-device. We designed SkinSense so you can explore
-                  your skin with confidence—before you ever share an email on the waitlist.
+                  Scan images are processed on-device. Front, right, and left captures are stored
+                  locally on your phone. We designed SkinSense so you can explore your skin with
+                  confidence—before you ever share an email on the waitlist.
                 </p>
               </div>
             </div>

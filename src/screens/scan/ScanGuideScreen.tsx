@@ -19,194 +19,20 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GradientButton } from '@/components/ui/GradientButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { getSkipScanTips, setSkipScanTips } from '@/core/storage/scanPreferences';
 import { useScanTips } from '@/i18n/content/useLocalizedContent';
 import { useTranslation } from '@/i18n/useTranslation';
-import { SCAN_GUIDE_HERO_URI } from '@/screens/scan/scanGuideContent';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import { SCAN_GUIDE_HERO_IMAGE } from '@/screens/scan/scanGuideContent';
+import type { AppColors } from '@/theme/palettes';
+import { radius, shadows, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScanGuide'>;
 
-export function ScanGuideScreen() {
-  const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
-  const { t } = useTranslation();
-  const scanTips = useScanTips();
-  const [permission, requestPermission] = useCameraPermissions();
-
-  const [skipTips, setSkipTips] = useState(false);
-  const [checkingSkip, setCheckingSkip] = useState(true);
-  const [openingCamera, setOpeningCamera] = useState(false);
-  const [permissionDenied, setPermissionDenied] = useState(false);
-
-  const heroSize = screenWidth - spacing.base * 2;
-  const footerPadBottom = Math.max(insets.bottom, spacing.base) + spacing.sm;
-
-  const navigateToCamera = useCallback(async () => {
-    setOpeningCamera(true);
-    try {
-      if (!permission?.granted) {
-        const result = await requestPermission();
-        if (!result.granted) {
-          setPermissionDenied(true);
-          return;
-        }
-      }
-      navigation.navigate('Camera');
-    } finally {
-      setOpeningCamera(false);
-    }
-  }, [navigation, permission?.granted, requestPermission]);
-
-  const handleOpenCamera = useCallback(async () => {
-    await setSkipScanTips(skipTips);
-    await navigateToCamera();
-  }, [navigateToCamera, skipTips]);
-
-  useEffect(() => {
-    let active = true;
-    getSkipScanTips().then((skip) => {
-      if (!active) return;
-      setCheckingSkip(false);
-      if (skip) {
-        navigateToCamera();
-      }
-    });
-    return () => {
-      active = false;
-    };
-  }, [navigateToCamera]);
-
-  if (checkingSkip) {
-    return (
-      <View style={[styles.root, styles.loading]}>
-        <ActivityIndicator color={colors.primary} />
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-
-      <ScreenHeader topInset={insets.top} title={t('scan.title')} style={styles.headerBar} />
-
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: 200 + footerPadBottom },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.hero, { width: heroSize, height: heroSize }]}>
-          <LinearGradient
-            colors={['transparent', `${colors.primary}0D`]}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <Image
-            source={{ uri: SCAN_GUIDE_HERO_URI }}
-            style={styles.heroImage}
-            contentFit="contain"
-            transition={200}
-          />
-        </View>
-
-        <Text style={styles.title}>{t('scan.getReady')}</Text>
-        <Text style={styles.subtitle}>{t('scan.getReadySub')}</Text>
-
-        <View style={styles.tips}>
-          {scanTips.map((tip) => (
-            <View key={tip.id} style={styles.tipCard}>
-              <View style={styles.tipIconWrap}>
-                <MaterialCommunityIcons name={tip.icon} size={24} color={colors.primary} />
-              </View>
-              <Text style={styles.tipText}>{tip.text}</Text>
-            </View>
-          ))}
-        </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
-        <Pressable
-          onPress={handleOpenCamera}
-          disabled={openingCamera}
-          style={({ pressed }) => [
-            styles.cta,
-            pressed && styles.ctaPressed,
-            openingCamera && styles.ctaDisabled,
-          ]}
-        >
-          {openingCamera ? (
-            <ActivityIndicator color={colors.textInverse} />
-          ) : (
-            <>
-              <Text style={styles.ctaLabel}>{t('scan.openCamera')}</Text>
-              <MaterialCommunityIcons name="camera" size={20} color={colors.textInverse} />
-            </>
-          )}
-        </Pressable>
-
-        <Pressable
-          onPress={() => setSkipTips((v) => !v)}
-          style={styles.skipRow}
-          accessibilityRole="checkbox"
-          accessibilityState={{ checked: skipTips }}
-        >
-          <View style={[styles.checkbox, skipTips && styles.checkboxChecked]}>
-            {skipTips ? (
-              <MaterialCommunityIcons name="check" size={14} color={colors.textInverse} />
-            ) : null}
-          </View>
-          <Text style={styles.skipLabel}>{t('scan.skipTips')}</Text>
-        </Pressable>
-      </View>
-
-      <PermissionDeniedSheet
-        visible={permissionDenied}
-        onClose={() => setPermissionDenied(false)}
-        onOpenSettings={() => {
-          setPermissionDenied(false);
-          Linking.openSettings();
-        }}
-      />
-    </View>
-  );
-}
-
-function PermissionDeniedSheet({
-  visible,
-  onClose,
-  onOpenSettings,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onOpenSettings: () => void;
-}) {
-  const { t } = useTranslation();
-
-  return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <Pressable style={styles.sheetBackdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <Text style={styles.sheetTitle}>{t('scan.cameraNeeded')}</Text>
-          <Text style={styles.sheetBody}>{t('scan.cameraNeededBody')}</Text>
-          <Pressable onPress={onOpenSettings} style={styles.sheetPrimary}>
-            <Text style={styles.sheetPrimaryLabel}>{t('common.openSettings')}</Text>
-          </Pressable>
-          <Pressable onPress={onClose} style={styles.sheetCancel}>
-            <Text style={styles.sheetCancelLabel}>{t('common.cancel')}</Text>
-          </Pressable>
-        </Pressable>
-      </Pressable>
-    </Modal>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -233,11 +59,10 @@ const styles = StyleSheet.create({
   heroImage: {
     width: '100%',
     height: '100%',
-    padding: spacing.xxl,
   },
   title: {
     ...typography.h2,
-    color: colors.primaryDark,
+    color: colors.ctaGradientStart,
     marginBottom: spacing.xs,
   },
   subtitle: {
@@ -289,20 +114,10 @@ const styles = StyleSheet.create({
     ...shadows.lg,
   },
   cta: {
-    height: touchTarget,
-    backgroundColor: colors.primaryContainer,
-    borderRadius: radius.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
+  },
+  ctaContent: {
     gap: spacing.sm,
-  },
-  ctaPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  ctaDisabled: {
-    opacity: 0.7,
   },
   ctaLabel: {
     ...typography.h3,
@@ -320,13 +135,13 @@ const styles = StyleSheet.create({
     height: 20,
     borderRadius: 4,
     borderWidth: 2,
-    borderColor: '#BFC9C1',
+    borderColor: colors.switchTrackOff,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    backgroundColor: colors.ctaGradientStart,
+    borderColor: colors.ctaGradientEnd,
   },
   skipLabel: {
     ...typography.label,
@@ -357,11 +172,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   sheetPrimary: {
-    height: touchTarget,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
     marginBottom: spacing.md,
   },
   sheetPrimaryLabel: {
@@ -374,6 +185,186 @@ const styles = StyleSheet.create({
   },
   sheetCancelLabel: {
     ...typography.body,
-    color: colors.primary,
+    color: colors.ctaGradientStart,
   },
 });
+}
+
+export function ScanGuideScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
+  const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const { t } = useTranslation();
+  const scanTips = useScanTips();
+  const [permission, requestPermission] = useCameraPermissions();
+
+  const [skipTips, setSkipTips] = useState(false);
+  const [checkingSkip, setCheckingSkip] = useState(true);
+  const [openingCamera, setOpeningCamera] = useState(false);
+  const [permissionDenied, setPermissionDenied] = useState(false);
+
+  const heroWidth = screenWidth - spacing.base * 2;
+  const heroHeight = Math.round(heroWidth * 0.72);
+  const footerPadBottom = Math.max(insets.bottom, spacing.base) + spacing.sm;
+
+  const navigateToCamera = useCallback(async () => {
+    setOpeningCamera(true);
+    try {
+      if (!permission?.granted) {
+        const result = await requestPermission();
+        if (!result.granted) {
+          setPermissionDenied(true);
+          return;
+        }
+      }
+      navigation.navigate('Camera');
+    } finally {
+      setOpeningCamera(false);
+    }
+  }, [navigation, permission?.granted, requestPermission]);
+
+  const handleOpenCamera = useCallback(async () => {
+    await setSkipScanTips(skipTips);
+    await navigateToCamera();
+  }, [navigateToCamera, skipTips]);
+
+  useEffect(() => {
+    let active = true;
+    getSkipScanTips().then((skip) => {
+      if (!active) return;
+      setCheckingSkip(false);
+      if (skip) {
+        navigateToCamera();
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [navigateToCamera]);
+
+  if (checkingSkip) {
+    return (
+      <View style={[styles.root, styles.loading]}>
+        <ActivityIndicator color={colors.ctaGradientStart} />
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style={statusBarStyle} />
+
+      <ScreenHeader topInset={insets.top} title={t('scan.title')} style={styles.headerBar} />
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: 200 + footerPadBottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.hero, { width: heroWidth, height: heroHeight }]}>
+          <LinearGradient
+            colors={['transparent', `${colors.primary}0D`]}
+            style={StyleSheet.absoluteFill}
+            pointerEvents="none"
+          />
+          <Image
+            source={SCAN_GUIDE_HERO_IMAGE}
+            style={styles.heroImage}
+            contentFit="cover"
+            transition={200}
+          />
+        </View>
+
+        <Text style={styles.title}>{t('scan.getReady')}</Text>
+        <Text style={styles.subtitle}>{t('scan.getReadySub')}</Text>
+
+        <View style={styles.tips}>
+          {scanTips.map((tip) => (
+            <View key={tip.id} style={styles.tipCard}>
+              <View style={styles.tipIconWrap}>
+                <MaterialCommunityIcons name={tip.icon} size={24} color={colors.ctaGradientStart} />
+              </View>
+              <Text style={styles.tipText}>{tip.text}</Text>
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: footerPadBottom }]}>
+        <GradientButton
+          onPress={handleOpenCamera}
+          disabled={openingCamera}
+          style={styles.cta}
+          contentStyle={styles.ctaContent}
+        >
+          {openingCamera ? (
+            <ActivityIndicator color={colors.textInverse} />
+          ) : (
+            <>
+              <Text style={styles.ctaLabel}>{t('scan.openCamera')}</Text>
+              <MaterialCommunityIcons name="camera" size={20} color={colors.textInverse} />
+            </>
+          )}
+        </GradientButton>
+
+        <Pressable
+          onPress={() => setSkipTips((v) => !v)}
+          style={styles.skipRow}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: skipTips }}
+        >
+          <View style={[styles.checkbox, skipTips && styles.checkboxChecked]}>
+            {skipTips ? (
+              <MaterialCommunityIcons name="check" size={14} color={colors.textInverse} />
+            ) : null}
+          </View>
+          <Text style={styles.skipLabel}>{t('scan.skipTips')}</Text>
+        </Pressable>
+      </View>
+
+      <PermissionDeniedSheet
+        visible={permissionDenied}
+        onClose={() => setPermissionDenied(false)}
+        onOpenSettings={() => {
+          setPermissionDenied(false);
+          Linking.openSettings();
+        }}
+      />
+    </View>
+  );
+}
+
+function PermissionDeniedSheet({
+  visible,
+  onClose,
+  onOpenSettings,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onOpenSettings: () => void;
+}) {
+  const styles = useThemedStyles(createStyles);
+  const { t } = useTranslation();
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <Pressable style={styles.sheetBackdrop} onPress={onClose}>
+        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          <Text style={styles.sheetTitle}>{t('scan.cameraNeeded')}</Text>
+          <Text style={styles.sheetBody}>{t('scan.cameraNeededBody')}</Text>
+          <GradientButton onPress={onOpenSettings} style={styles.sheetPrimary}>
+            <Text style={styles.sheetPrimaryLabel}>{t('common.openSettings')}</Text>
+          </GradientButton>
+          <Pressable onPress={onClose} style={styles.sheetCancel}>
+            <Text style={styles.sheetCancelLabel}>{t('common.cancel')}</Text>
+          </Pressable>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}

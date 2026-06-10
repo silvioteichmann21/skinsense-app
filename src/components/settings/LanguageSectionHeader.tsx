@@ -1,20 +1,14 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { spacing, typography, useThemedStyles } from '@/theme';
 
 type Props = {
   title: string;
 };
 
-export function LanguageSectionHeader({ title }: Props) {
-  return (
-    <View style={styles.wrap}>
-      <Text style={styles.title}>{title}</Text>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
@@ -26,3 +20,14 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
 });
+}
+
+export function LanguageSectionHeader({
+ title }: Props) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={styles.wrap}>
+      <Text style={styles.title}>{title}</Text>
+    </View>
+  );
+}

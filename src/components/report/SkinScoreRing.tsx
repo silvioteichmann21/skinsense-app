@@ -7,7 +7,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import Svg, { Circle } from 'react-native-svg';
 
-import { colors, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { typography, useThemedStyles, useAppTheme } from '@/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -20,7 +21,36 @@ type Props = {
   size?: number;
 };
 
-export function SkinScoreRing({ score, max = 100, size = DEFAULT_SIZE }: Props) {
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  wrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  svg: {
+    position: 'absolute',
+  },
+  center: {
+    alignItems: 'center',
+  },
+  score: {
+    ...typography.score,
+    color: colors.primary,
+  },
+  max: {
+    fontFamily: typography.label.fontFamily,
+    fontSize: 10,
+    lineHeight: 12,
+    color: colors.textTertiary,
+    letterSpacing: 0.5,
+  },
+});
+}
+
+export function SkinScoreRing({
+ score, max = 100, size = DEFAULT_SIZE }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const radius = (size - STROKE) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = useSharedValue(0);
@@ -70,27 +100,3 @@ export function SkinScoreRing({ score, max = 100, size = DEFAULT_SIZE }: Props) 
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  svg: {
-    position: 'absolute',
-  },
-  center: {
-    alignItems: 'center',
-  },
-  score: {
-    ...typography.score,
-    color: colors.primary,
-  },
-  max: {
-    fontFamily: typography.label.fontFamily,
-    fontSize: 10,
-    lineHeight: 12,
-    color: colors.textTertiary,
-    letterSpacing: 0.5,
-  },
-});

@@ -1,6 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const COMPLETED_KEY = 'skinsense.routine.completed';
+import { getActiveUserScope, storageKeyForUser } from '@/core/storage/userScope';
+
+const COMPLETED_BASE_KEY = '@skinsense/routine.completed';
+const LEGACY_COMPLETED_KEY = 'skinsense.routine.completed';
+
+async function completedKey(): Promise<string> {
+  return storageKeyForUser(COMPLETED_BASE_KEY, await getActiveUserScope());
+}
 
 export type RoutinePeriod = 'morning' | 'evening';
 
@@ -10,9 +17,10 @@ function periodKey(period: RoutinePeriod): string {
 }
 
 async function readAll(): Promise<Record<string, string[]>> {
-  const raw = await AsyncStorage.getItem(COMPLETED_KEY);
+  const raw = await AsyncStorage.getItem(await completedKey());
   if (!raw) return {};
   try {
+    await AsyncStorage.removeItem(LEGACY_COMPLETED_KEY);
     return JSON.parse(raw) as Record<string, string[]>;
   } catch {
     return {};
@@ -20,7 +28,8 @@ async function readAll(): Promise<Record<string, string[]>> {
 }
 
 async function writeAll(data: Record<string, string[]>): Promise<void> {
-  await AsyncStorage.setItem(COMPLETED_KEY, JSON.stringify(data));
+  await AsyncStorage.setItem(await completedKey(), JSON.stringify(data));
+  await AsyncStorage.removeItem(LEGACY_COMPLETED_KEY);
 }
 
 export async function getCompletedStepIds(period: RoutinePeriod): Promise<Set<string>> {

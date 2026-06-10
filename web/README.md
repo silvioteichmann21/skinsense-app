@@ -75,6 +75,16 @@ That screen usually means the site was **not built as Next.js**:
 - **Framework Preset** must be **Next.js**, not “Other”.
 - Redeploy after changing settings.
 
+## Landing images
+
+Screenshots are synced from the mobile app assets (v2 artwork):
+
+```bash
+npm run sync:images
+```
+
+Sources: `assets/scan/guide-hero-v2.png`, `assets/welcome/slide-*-v2.png`, `assets/icon-skinsense-v2.png` → `public/images/landing/`.
+
 ## API
 
 `POST /api/waitlist`

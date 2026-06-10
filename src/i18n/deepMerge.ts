@@ -1,4 +1,12 @@
-export function deepMerge<T extends Record<string, unknown>>(base: T, override: Partial<T>): T {
+/** Recursively-optional version of T — locale files override a subset of keys. */
+export type DeepPartial<T> = {
+  [P in keyof T]?: T[P] extends Record<string, unknown> ? DeepPartial<T[P]> : T[P];
+};
+
+export function deepMerge<T extends Record<string, unknown>>(
+  base: T,
+  override: DeepPartial<T>,
+): T {
   const result = { ...base } as T;
   for (const key of Object.keys(override) as (keyof T)[]) {
     const baseVal = base[key];

@@ -2,7 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, View, ViewStyle } from 'react-native';
 
 import { useAppBack } from '@/core/navigation/useAppBack';
-import { colors, touchTarget } from '@/theme';
+import { touchTarget, useAppTheme } from '@/theme';
 
 type Variant = 'default' | 'muted' | 'inverse';
 
@@ -14,14 +14,15 @@ type Props = {
   preserveLayout?: boolean;
 };
 
-const ICON_COLORS: Record<Variant, string> = {
-  default: colors.primary,
-  muted: colors.textSecondary,
-  inverse: colors.textInverse,
-};
-
 export function ScreenBackButton({ variant = 'default', onPress, style, preserveLayout }: Props) {
   const { goBack, showBack } = useAppBack();
+  const { colors } = useAppTheme();
+  const iconColor =
+    variant === 'inverse'
+      ? colors.textInverse
+      : variant === 'muted'
+        ? colors.textSecondary
+        : colors.primary;
 
   if (!showBack && !preserveLayout) {
     return null;
@@ -38,7 +39,7 @@ export function ScreenBackButton({ variant = 'default', onPress, style, preserve
       accessibilityLabel="Go back"
       hitSlop={8}
     >
-      <MaterialCommunityIcons name="arrow-left" size={24} color={ICON_COLORS[variant]} />
+      <MaterialCommunityIcons name="arrow-left" size={24} color={iconColor} />
     </Pressable>
   );
 }

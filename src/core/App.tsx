@@ -15,19 +15,26 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { NotificationProvider } from '@/providers/NotificationProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 import { RootNavigator } from '@/core/navigation/RootNavigator';
+import { useAuthStore } from '@/store/authStore';
 import { useRoutineStore } from '@/store/routineStore';
 import { useSkinStore } from '@/store/skinStore';
-import { colors } from '@/theme';
+import { useAppTheme } from '@/theme';
 
-export function App() {
+function AppShell() {
+  const { colors, statusBarStyle } = useAppTheme();
+  const isAuthReady = useAuthStore((s) => s.isInitialized);
+  const userId = useAuthStore((s) => s.user?.id);
   const loadHistory = useSkinStore((s) => s.loadHistory);
   const hydrateRoutine = useRoutineStore((s) => s.hydrate);
 
   useEffect(() => {
+    if (!isAuthReady) return;
     void loadHistory();
     void hydrateRoutine();
-  }, [loadHistory, hydrateRoutine]);
+  }, [isAuthReady, userId, loadHistory, hydrateRoutine]);
 
   const [fontsLoaded] = useFonts({
     DMSans_400Regular,
@@ -39,9 +46,9 @@ export function App() {
 
   if (!fontsLoaded) {
     return (
-      <View style={styles.loading}>
+      <View style={[styles.loading, { backgroundColor: colors.primaryContainer }]}>
         <ActivityIndicator color={colors.textInverse} size="large" />
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
       </View>
     );
   }
@@ -51,14 +58,24 @@ export function App() {
       <SafeAreaProvider>
         <I18nProvider>
           <AuthProvider>
-            <NavigationContainer>
-              <RootNavigator />
-            </NavigationContainer>
+            <NotificationProvider>
+              <NavigationContainer>
+                <RootNavigator />
+              </NavigationContainer>
+            </NotificationProvider>
           </AuthProvider>
         </I18nProvider>
-        <StatusBar style="light" />
+        <StatusBar style={statusBarStyle} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
+  );
+}
+
+export function App() {
+  return (
+    <ThemeProvider>
+      <AppShell />
+    </ThemeProvider>
   );
 }
 
@@ -68,7 +85,6 @@ const styles = StyleSheet.create({
   },
   loading: {
     flex: 1,
-    backgroundColor: colors.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
   },

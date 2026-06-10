@@ -1,28 +1,46 @@
 :root {
-  --bg: #f8faf9;
-  --surface: #ffffff;
-  --surface-alt: #f0fff4;
-  --surface-elevated: #ffffff;
-  --primary: #2d6a4f;
-  --primary-dark: #1b4332;
+  /* Dark theme — inspired by premium app UI, SkinSense green accents */
+  --bg: #000000;
+  --bg-elevated: #0a0a0a;
+  --surface: #1c1c1e;
+  --surface-top: #2a2a2e;
+  --surface-alt: #161618;
+  --card-gradient: linear-gradient(180deg, #2a2a2e 0%, #1c1c1e 55%, #18181a 100%);
+  --primary: #52b788;
+  --primary-dark: #2d6a4f;
+  --primary-bright: #74d4a8;
   --primary-pale: #b7e4c7;
-  --primary-glow: rgba(45, 106, 79, 0.35);
-  --secondary: #52b788;
-  --accent: #f4a261;
-  --accent-soft: #fff4eb;
-  --text: #191c1c;
-  --text-muted: #4b5563;
-  --text-soft: #707973;
-  --border: #e5e7eb;
-  --radius: 0.5rem;
-  --radius-lg: 1rem;
+  --primary-glow: rgba(82, 183, 136, 0.35);
+  /* Primary CTA pill — magenta → violet → indigo (matches mobile app) */
+  --cta-start: #e879f9;
+  --cta-mid: #c084fc;
+  --cta-end: #6366f1;
+  --cta-glow: rgba(232, 121, 249, 0.42);
+  --cta-tint: rgba(232, 121, 249, 0.14);
+  --gradient-cta: linear-gradient(
+    90deg,
+    var(--cta-start) 0%,
+    var(--cta-mid) 48%,
+    var(--cta-end) 100%
+  );
+  --secondary: #95d5b2;
+  --accent-icon: #f5c842;
+  --accent-stat: #ff6b6b;
+  --text: #ffffff;
+  --text-muted: #a1a1a6;
+  --text-soft: #8e8e93;
+  --text-heading: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --radius: 0.75rem;
+  --radius-lg: 1.25rem;
   --radius-xl: 1.5rem;
-  --radius-2xl: 2rem;
-  --text-heading: #111827;
-  --shadow: 0 10px 40px rgba(27, 67, 50, 0.12);
-  --shadow-soft: 0 10px 40px rgba(27, 67, 50, 0.06);
-  --shadow-hero: 0 24px 64px rgba(27, 67, 50, 0.2);
-  --shadow-card-hover: 0 20px 48px rgba(27, 67, 50, 0.12);
+  --radius-2xl: 1.5rem;
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --shadow-hero: 0 24px 64px rgba(0, 0, 0, 0.55);
+  --shadow-card-hover: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(232, 121, 249, 0.2);
+  --shadow-glow-green: 0 0 40px rgba(82, 183, 136, 0.12);
+  --shadow-glow-cta: 0 0 48px rgba(232, 121, 249, 0.18);
   --section-gap: clamp(5rem, 12vw, 8rem);
   --container: 1280px;
   --font-sans: var(--font-dm-sans), system-ui, sans-serif;
@@ -37,6 +55,7 @@
 
 html {
   scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
@@ -95,6 +114,18 @@ img {
     }
     50% {
       transform: translateY(-8px);
+    }
+  }
+
+  @keyframes pulse-dot {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.5;
+      transform: scale(0.85);
     }
   }
 }

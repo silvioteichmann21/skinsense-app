@@ -1,6 +1,6 @@
 import Svg, { Polyline } from 'react-native-svg';
 
-import { colors } from '@/theme';
+import { useAppTheme } from '@/theme';
 
 type Props = {
   values: number[];
@@ -9,7 +9,10 @@ type Props = {
   stroke?: string;
 };
 
-export function Sparkline({ values, width = 60, height = 24, stroke = colors.primary }: Props) {
+export function Sparkline({ values, width = 60, height = 24, stroke }: Props) {
+  const { colors } = useAppTheme();
+  const strokeColor = stroke ?? colors.primary;
+
   if (values.length < 2) return null;
 
   const max = Math.max(...values, 1);
@@ -27,7 +30,7 @@ export function Sparkline({ values, width = 60, height = 24, stroke = colors.pri
 
   return (
     <Svg width={width} height={height}>
-      <Polyline points={points} fill="none" stroke={stroke} strokeWidth={2} />
+      <Polyline points={points} fill="none" stroke={strokeColor} strokeWidth={2} />
     </Svg>
   );
 }

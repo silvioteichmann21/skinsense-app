@@ -1,79 +1,220 @@
-import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
+import { useFaceZoneMetrics } from '@/hooks/useFaceZoneMetrics';
+import type { FaceZoneId, ZoneIssueType } from '@/services/ai/faceZoneMetrics';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { SkinAnalysisResult } from '@/types/skinAnalysis';
+import type { AppColors } from '@/theme/palettes';
+import {
+  radius,
+  spacing,
+  typography,
+  useContentWidth,
+  useThemedStyles,
+  useAppTheme,
+} from '@/theme';
 
-type ZoneId = 'forehead' | 'leftCheek' | 'rightCheek' | 'nose' | 'chin';
-
-const ZONE_LAYOUT: Record<
-  ZoneId,
-  { style: object; tint: 'elevated' | 'balanced'; labelKey: TranslationKey }
-> = {
-  forehead: {
-    style: { top: '10%', left: '25%', width: '50%', height: '20%' },
-    tint: 'elevated',
-    labelKey: 'report.zoneForehead',
-  },
-  leftCheek: {
-    style: { top: '35%', left: '20%', width: '25%', height: '30%' },
-    tint: 'balanced',
-    labelKey: 'report.zoneLeftCheek',
-  },
-  rightCheek: {
-    style: { top: '35%', right: '20%', width: '25%', height: '30%' },
-    tint: 'balanced',
-    labelKey: 'report.zoneRightCheek',
-  },
-  nose: {
-    style: { top: '30%', left: '45%', width: '10%', height: '40%' },
-    tint: 'elevated',
-    labelKey: 'report.zoneNose',
-  },
-  chin: {
-    style: { bottom: '12%', left: '35%', width: '30%', height: '14%' },
-    tint: 'balanced',
-    labelKey: 'report.zoneChin',
-  },
+const ZONE_LABEL_KEYS: Record<FaceZoneId, TranslationKey> = {
+  forehead: 'report.zoneForehead',
+  leftCheek: 'report.zoneLeftCheek',
+  rightCheek: 'report.zoneRightCheek',
+  nose: 'report.zoneNose',
+  chin: 'report.zoneChin',
 };
 
-const ZONE_IDS: ZoneId[] = ['forehead', 'leftCheek', 'rightCheek', 'nose', 'chin'];
+const ZONE_IDS: FaceZoneId[] = ['forehead', 'leftCheek', 'rightCheek', 'nose', 'chin'];
 
-export function FaceMap() {
+const ISSUE_STATUS_KEYS: Record<ZoneIssueType, TranslationKey> = {
+  oil: 'report.zoneIssueStatus.oil',
+  dryness: 'report.zoneIssueStatus.dryness',
+  texture: 'report.zoneIssueStatus.texture',
+  redness: 'report.zoneIssueStatus.redness',
+  balanced: 'report.zoneIssueStatus.balanced',
+};
+
+const ISSUE_DESC_KEYS: Record<ZoneIssueType, TranslationKey> = {
+  oil: 'report.zoneIssueDesc.oil',
+  dryness: 'report.zoneIssueDesc.dryness',
+  texture: 'report.zoneIssueDesc.texture',
+  redness: 'report.zoneIssueDesc.redness',
+  balanced: 'report.zoneIssueDesc.balanced',
+};
+
+function createStyles(colors: AppColors, compact: boolean) {
+  return StyleSheet.create({
+    card: {
+      backgroundColor: colors.surfaceMuted,
+      borderRadius: radius.lg,
+      padding: compact ? spacing.lg : spacing.xl,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      gap: spacing.lg,
+    },
+    heading: {
+      ...typography.label,
+      color: colors.textSecondary,
+      letterSpacing: 1,
+    },
+    summary: {
+      ...typography.body,
+      color: colors.textSecondary,
+      lineHeight: 22,
+    },
+    loadingRow: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    zoneList: {
+      gap: spacing.md,
+    },
+    zoneRow: {
+      padding: spacing.lg,
+      borderRadius: radius.md,
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+      gap: spacing.sm,
+    },
+    zoneHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: spacing.md,
+    },
+    zoneName: {
+      ...typography.h3,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    statusBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: spacing.xs,
+      borderRadius: radius.full,
+    },
+    statusElevated: {
+      backgroundColor: 'rgba(245, 200, 66, 0.18)',
+    },
+    statusBalanced: {
+      backgroundColor: 'rgba(82, 183, 136, 0.16)',
+    },
+    statusTextElevated: {
+      ...typography.label,
+      color: colors.warning,
+      fontSize: 11,
+      letterSpacing: 0.6,
+    },
+    statusTextBalanced: {
+      ...typography.label,
+      color: colors.primaryLight,
+      fontSize: 11,
+      letterSpacing: 0.6,
+    },
+    zoneBody: {
+      ...typography.body,
+      color: colors.textSecondary,
+      lineHeight: 20,
+    },
+    legend: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.lg,
+      paddingTop: spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.hairline,
+    },
+    legendItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flex: 1,
+      minWidth: '45%',
+    },
+    dot: {
+      width: 12,
+      height: 12,
+      borderRadius: 6,
+    },
+    dotElevated: {
+      backgroundColor: colors.warning,
+    },
+    dotBalanced: {
+      backgroundColor: colors.primary,
+    },
+    legendText: {
+      fontSize: 12,
+      color: colors.textSecondary,
+      fontFamily: typography.body.fontFamily,
+    },
+  });
+}
+
+type Props = {
+  result?: SkinAnalysisResult;
+};
+
+export function FaceMap({ result }: Props) {
+  const contentWidth = useContentWidth();
+  const compact = contentWidth < 340;
+  const styles = useThemedStyles((colors) => createStyles(colors, compact));
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
-  const [activeZone, setActiveZone] = useState<string | null>(null);
 
-  const zones = useMemo(
-    () =>
-      ZONE_IDS.map((id) => ({
-        id,
-        label: t(ZONE_LAYOUT[id].labelKey),
-        style: ZONE_LAYOUT[id].style,
-        tint: ZONE_LAYOUT[id].tint,
-      })),
-    [t],
-  );
+  const { metrics, loading } = useFaceZoneMetrics(result?.imageUri, result);
+
+  const zones = useMemo(() => {
+    if (!metrics) return [];
+
+    return ZONE_IDS.map((id) => ({
+      id,
+      label: t(ZONE_LABEL_KEYS[id]),
+      tint: metrics[id].tint,
+      issue: metrics[id].issue,
+    }));
+  }, [metrics, t]);
 
   return (
     <View style={styles.card}>
       <Text style={styles.heading}>{t('report.faceMapTitle')}</Text>
-      <View style={styles.mapWrap}>
-        <View style={styles.faceOutline} />
-        {zones.map((zone) => (
-          <Pressable
-            key={zone.id}
-            onPress={() => setActiveZone(zone.label)}
-            style={[
-              styles.zone,
-              zone.style,
-              zone.tint === 'elevated' ? styles.zoneElevated : styles.zoneBalanced,
-              activeZone === zone.label && styles.zoneActive,
-            ]}
-          />
-        ))}
-      </View>
-      {activeZone ? <Text style={styles.tooltip}>{activeZone}</Text> : null}
+      <Text style={styles.summary}>{t('report.faceMapSummary')}</Text>
+
+      {loading ? (
+        <View style={styles.loadingRow}>
+          <ActivityIndicator color={colors.primary} size="small" />
+          <Text style={[styles.summary, { marginTop: spacing.sm, textAlign: 'center' }]}>
+            {t('report.zoneAnalyzing')}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.zoneList}>
+          {zones.map((zone) => (
+            <View key={zone.id} style={styles.zoneRow}>
+              <View style={styles.zoneHeader}>
+                <Text style={styles.zoneName}>{zone.label}</Text>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    zone.tint === 'elevated' ? styles.statusElevated : styles.statusBalanced,
+                  ]}
+                >
+                  <Text
+                    style={
+                      zone.tint === 'elevated'
+                        ? styles.statusTextElevated
+                        : styles.statusTextBalanced
+                    }
+                  >
+                    {t(ISSUE_STATUS_KEYS[zone.issue])}
+                  </Text>
+                </View>
+              </View>
+              <Text style={styles.zoneBody}>{t(ISSUE_DESC_KEYS[zone.issue])}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.dot, styles.dotElevated]} />
@@ -87,84 +228,3 @@ export function FaceMap() {
     </View>
   );
 }
-
-const MAP_WIDTH = 192;
-const MAP_HEIGHT = 256;
-
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#F1F3FF',
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  heading: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: spacing.xl,
-  },
-  mapWrap: {
-    width: MAP_WIDTH,
-    height: MAP_HEIGHT,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  faceOutline: {
-    width: MAP_WIDTH * 0.9,
-    height: MAP_HEIGHT * 0.92,
-    borderRadius: MAP_WIDTH * 0.45,
-    borderWidth: 2,
-    borderColor: 'rgba(112, 121, 115, 0.3)',
-  },
-  zone: {
-    position: 'absolute',
-    borderRadius: 999,
-  },
-  zoneElevated: {
-    backgroundColor: 'rgba(142, 78, 20, 0.35)',
-  },
-  zoneBalanced: {
-    backgroundColor: 'rgba(183, 228, 199, 0.55)',
-  },
-  zoneActive: {
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  tooltip: {
-    ...typography.body,
-    color: colors.primaryDark,
-    marginTop: spacing.md,
-    fontFamily: typography.bodyLg.fontFamily,
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.lg,
-    marginTop: spacing.xl,
-    width: '100%',
-    justifyContent: 'space-between',
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    width: '48%',
-  },
-  dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  dotElevated: {
-    backgroundColor: '#8E4E14',
-  },
-  dotBalanced: {
-    backgroundColor: colors.primaryPale,
-  },
-  legendText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontFamily: typography.bodyLg.fontFamily,
-  },
-});

@@ -1,79 +1,114 @@
-import { Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
+import { StyleSheet, Text, ViewStyle } from 'react-native';
 
-import { colors, radius, touchTarget, typography } from '@/theme';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { PressableScale } from '@/components/ui/PressableScale';
+import type { AppColors } from '@/theme/palettes';
+import { radius, touchTarget, typography, useThemedStyles } from '@/theme';
 
-type Variant = 'light' | 'green' | 'ghost';
+type Variant = 'light' | 'green' | 'gradient' | 'ghost' | 'outline';
 
 type Props = {
   label: string;
   onPress: () => void;
   variant?: Variant;
   style?: ViewStyle;
+  disabled?: boolean;
 };
 
-export function PrimaryButton({ label, onPress, variant = 'light', style }: Props) {
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    base: {
+      height: touchTarget,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+      flexDirection: 'row',
+    },
+    gradientBtn: {
+      width: '100%',
+    },
+    light: {
+      backgroundColor: colors.surfaceElevated,
+      borderWidth: 1,
+      borderColor: colors.hairline,
+    },
+    ghost: {
+      backgroundColor: 'transparent',
+    },
+    outline: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.glassBorder,
+    },
+    disabled: {
+      opacity: 0.5,
+    },
+    label: {
+      ...typography.h3,
+    },
+    labelDark: {
+      color: colors.textPrimary,
+    },
+    labelLight: {
+      color: colors.textInverse,
+      fontFamily: typography.h3.fontFamily,
+      letterSpacing: 0.2,
+    },
+    labelGhost: {
+      color: colors.textPrimary,
+      opacity: 0.9,
+    },
+    labelOutline: {
+      ...typography.bodyLg,
+      color: colors.textSecondary,
+      fontFamily: typography.h3.fontFamily,
+    },
+  });
+}
+
+export function PrimaryButton({ label, onPress, variant = 'light', style, disabled }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const isGradient = variant === 'green' || variant === 'gradient';
+
+  if (isGradient) {
+    return (
+      <GradientButton
+        onPress={onPress}
+        disabled={disabled}
+        style={[styles.gradientBtn, style]}
+        haptic="medium"
+      >
+        <Text style={[styles.label, styles.labelLight]}>{label}</Text>
+      </GradientButton>
+    );
+  }
+
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
-      style={({ pressed }) => [
+      disabled={disabled}
+      haptic={variant === 'ghost' || variant === 'outline' ? 'selection' : 'medium'}
+      pressedScale={0.98}
+      style={[
         styles.base,
         variant === 'light' && styles.light,
-        variant === 'green' && styles.green,
         variant === 'ghost' && styles.ghost,
-        pressed && styles.pressed,
+        variant === 'outline' && styles.outline,
+        disabled && styles.disabled,
         style,
-      ]}
+      ].filter(Boolean) as ViewStyle[]}
     >
       <Text
         style={[
           styles.label,
           variant === 'light' && styles.labelDark,
-          variant === 'green' && styles.labelLight,
           variant === 'ghost' && styles.labelGhost,
+          variant === 'outline' && styles.labelOutline,
         ]}
       >
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }
-
-const styles = StyleSheet.create({
-  base: {
-    height: touchTarget,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  light: {
-    backgroundColor: '#F4FAF9',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  green: {
-    backgroundColor: colors.primary,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
-  pressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  label: {
-    ...typography.h3,
-  },
-  labelDark: {
-    color: colors.primaryDark,
-  },
-  labelLight: {
-    color: colors.textInverse,
-  },
-  labelGhost: {
-    color: 'rgba(255,255,255,0.9)',
-  },
-});

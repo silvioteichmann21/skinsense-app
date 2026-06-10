@@ -18,25 +18,124 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { AuthFeedbackBanner } from '@/components/auth/AuthFeedbackBanner';
 import { GenderSelectField } from '@/components/auth/GenderSelectField';
 import { AuthDecorBackground } from '@/components/auth/AuthDecorBackground';
 import { AuthFormCard } from '@/components/auth/AuthFormCard';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { Divider } from '@/components/ui/Divider';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { SocialAuthButton } from '@/components/ui/SocialAuthButton';
 import { TextField } from '@/components/ui/TextField';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/store/authStore';
 import type { GenderValue } from '@/types/profile';
-import { colors, radius, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type SignupNav = NativeStackNavigationProp<RootStackParamList, 'Signup'>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PASSWORD_RE = /^(?=.*[A-Z])(?=.*\d).{8,}$/;
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.base,
+    justifyContent: 'center',
+  },
+  form: {
+    gap: spacing.base,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    gap: spacing.base,
+  },
+  nameField: {
+    flex: 1,
+  },
+  termsWrap: {
+    gap: 6,
+    paddingVertical: spacing.sm,
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+    backgroundColor: colors.surfaceAlt,
+  },
+  checkboxChecked: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  termsText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  termsLink: {
+    color: colors.primary,
+    fontFamily: typography.h3.fontFamily,
+  },
+  termsError: {
+    ...typography.caption,
+    color: colors.error,
+  },
+  formError: {
+    ...typography.caption,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  createWrap: {
+    marginTop: spacing.sm,
+  },
+  dividerWrap: {
+    marginVertical: spacing.lg,
+  },
+  socialGap: {
+    gap: spacing.md,
+  },
+  cardFooter: {
+    marginTop: spacing.xl,
+    paddingTop: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  footerText: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  footerLink: {
+    color: colors.primary,
+    fontFamily: typography.h3.fontFamily,
+  },
+});
+}
+
 export function SignupScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
   const navigation = useNavigation<SignupNav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -49,6 +148,10 @@ export function SignupScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [authFeedback, setAuthFeedback] = useState<{
+    variant: 'success' | 'error';
+    message: string;
+  } | null>(null);
   const signUp = useAuthStore((s) => s.signUp);
   const isLoading = useAuthStore((s) => s.isLoading);
 
@@ -112,6 +215,7 @@ export function SignupScreen() {
     if (!validate()) return;
 
     setFormError(null);
+    setAuthFeedback(null);
     const { errorKey, needsEmailConfirmation } = await signUp({
       email,
       password,
@@ -121,7 +225,10 @@ export function SignupScreen() {
     });
 
     if (errorKey) {
-      setFormError(t(errorKey));
+      const message = t(errorKey);
+      setFormError(message);
+      setAuthFeedback({ variant: 'error', message });
+      Alert.alert(t('auth.signUpFailedTitle'), message);
       return;
     }
 
@@ -129,7 +236,8 @@ export function SignupScreen() {
       ? t('auth.emailConfirmationSent')
       : t('auth.accountCreatedMessage');
 
-    Alert.alert(t('auth.accountCreatedTitle'), message, [
+    setAuthFeedback({ variant: 'success', message });
+    Alert.alert(t('auth.signUpSuccessTitle'), message, [
       {
         text: t('common.ok'),
         onPress: () =>
@@ -144,7 +252,7 @@ export function SignupScreen() {
   return (
     <View style={styles.root}>
       <AuthDecorBackground />
-      <StatusBar style="dark" />
+      <StatusBar style={statusBarStyle} />
 
       <ScreenHeader topInset={insets.top} />
 
@@ -161,6 +269,10 @@ export function SignupScreen() {
           showsVerticalScrollIndicator={false}
         >
           <AuthFormCard>
+            {authFeedback ? (
+              <AuthFeedbackBanner variant={authFeedback.variant} message={authFeedback.message} />
+            ) : null}
+
             <AuthHeader
               title={t('auth.createAccount')}
               subtitle={t('auth.createSubtitle')}
@@ -262,28 +374,17 @@ export function SignupScreen() {
 
               {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
-              <Pressable
-                onPress={handleCreateAccount}
-                disabled={isLoading}
-                style={({ pressed }) => [
-                  styles.createBtn,
-                  pressed && styles.createPressed,
-                  isLoading && styles.createDisabled,
-                ]}
-              >
+              <View style={styles.createWrap}>
                 {isLoading ? (
-                  <ActivityIndicator color={colors.textInverse} />
+                  <ActivityIndicator color={colors.primary} />
                 ) : (
-                  <View style={styles.createContent}>
-                    <Text style={styles.createLabel}>{t('auth.createAccountBtn')}</Text>
-                    <MaterialCommunityIcons
-                      name="arrow-right"
-                      size={20}
-                      color={colors.textInverse}
-                    />
-                  </View>
+                  <PrimaryButton
+                    label={t('auth.createAccountBtn')}
+                    variant="green"
+                    onPress={handleCreateAccount}
+                  />
                 )}
-              </Pressable>
+              </View>
             </View>
 
             <View style={styles.dividerWrap}>
@@ -319,6 +420,8 @@ function TermsRow({
   onToggle: () => void;
   error?: string;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
 
   return (
@@ -339,115 +442,3 @@ function TermsRow({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.base,
-    justifyContent: 'center',
-  },
-  form: {
-    gap: spacing.base,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    gap: spacing.base,
-  },
-  nameField: {
-    flex: 1,
-  },
-  termsWrap: {
-    gap: 6,
-    paddingVertical: spacing.sm,
-  },
-  termsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing.md,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-    backgroundColor: colors.white,
-  },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  termsText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    flex: 1,
-  },
-  termsLink: {
-    color: colors.primary,
-    fontFamily: typography.h3.fontFamily,
-  },
-  termsError: {
-    ...typography.caption,
-    color: colors.error,
-  },
-  formError: {
-    ...typography.caption,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  createBtn: {
-    height: touchTarget,
-    borderRadius: radius.md,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-  },
-  createPressed: {
-    opacity: 0.9,
-    transform: [{ scale: 0.98 }],
-  },
-  createDisabled: {
-    opacity: 0.7,
-  },
-  createContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  createLabel: {
-    ...typography.h3,
-    color: colors.textInverse,
-  },
-  dividerWrap: {
-    marginVertical: spacing.lg,
-  },
-  socialGap: {
-    gap: spacing.md,
-  },
-  cardFooter: {
-    marginTop: spacing.xl,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  footerText: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  footerLink: {
-    color: colors.primary,
-    fontFamily: typography.h3.fontFamily,
-  },
-});

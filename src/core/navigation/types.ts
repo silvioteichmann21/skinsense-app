@@ -25,18 +25,23 @@ export type RootStackParamList = {
     period: RoutinePeriod;
     stepIndex: number;
   };
-  Products: undefined;
-  ProductDetail: { productId: string };
-  IngredientScanner: undefined;
-  IngredientScanResult: undefined;
+  EditRoutine: undefined;
+  ScienceLibrary: undefined;
+  IngredientDetail: { ingredientId: string };
+  ArticleReader: { articleId: string };
   AIChat: undefined;
   EditProfile: undefined;
   SkinProfile: undefined;
   Privacy: undefined;
   Settings: undefined;
   Compare: undefined;
+  Notifications: undefined;
   Language: undefined;
-  Main: undefined;
+  HelpSupport: undefined;
+  TermsPrivacy: undefined;
+  AppFeedback: { initialStars?: number } | undefined;
+  CommunityReviews: undefined;
+  Main: { screen?: keyof MainTabParamList } | undefined;
 };
 
 export type MainTabParamList = {

@@ -7,7 +7,17 @@ export type ProfileMenuItem = {
   id: string;
   label: string;
   icon: IconName;
-  action: 'products' | 'editProfile' | 'skinProfile' | 'privacy' | 'settings' | 'placeholder' | 'signOut';
+  action:
+    | 'science'
+    | 'editProfile'
+    | 'skinProfile'
+    | 'privacy'
+    | 'settings'
+    | 'notifications'
+    | 'helpSupport'
+    | 'communityReviews'
+    | 'termsPrivacy'
+    | 'signOut';
 };
 
 export const PROFILE_USER = {
@@ -26,11 +36,12 @@ export const PROFILE_USER = {
 export const PROFILE_MENU: ProfileMenuItem[] = [
   { id: 'edit', label: 'Edit Profile', icon: 'pencil-outline', action: 'editProfile' },
   { id: 'skin', label: 'My Skin Profile', icon: 'face-man-outline', action: 'skinProfile' },
-  { id: 'notif', label: 'Notification Settings', icon: 'bell-ring-outline', action: 'settings' },
+  { id: 'notif', label: 'Notification Settings', icon: 'bell-ring-outline', action: 'notifications' },
   { id: 'privacy', label: 'Privacy & Data', icon: 'shield-outline', action: 'privacy' },
-  { id: 'products', label: 'Products', icon: 'shopping-outline', action: 'products' },
+  { id: 'science', label: 'Science Guide', icon: 'book-open-variant', action: 'science' },
+  { id: 'reviews', label: 'Reviews & ratings', icon: 'star-shooting-outline', action: 'communityReviews' },
   { id: 'settings', label: 'App Settings', icon: 'cog-outline', action: 'settings' },
-  { id: 'help', label: 'Help & Support', icon: 'help-circle-outline', action: 'placeholder' },
-  { id: 'terms', label: 'Terms & Privacy Policy', icon: 'file-document-outline', action: 'placeholder' },
+  { id: 'help', label: 'Help & Support', icon: 'help-circle-outline', action: 'helpSupport' },
+  { id: 'terms', label: 'Terms & Privacy Policy', icon: 'file-document-outline', action: 'termsPrivacy' },
   { id: 'signout', label: 'Sign Out', icon: 'logout', action: 'signOut' },
 ];

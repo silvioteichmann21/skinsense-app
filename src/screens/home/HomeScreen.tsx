@@ -1,10 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
-import { useNavigation } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback } from 'react';
 import {
@@ -17,8 +16,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CommunityReviewsSection } from '@/components/feedback/CommunityReviewsSection';
+import { CommunityTrustCard } from '@/components/feedback/CommunityTrustCard';
+import { incrementHomeVisitCount } from '@/core/storage/feedbackPromptStorage';
+import { useReviewPrompt } from '@/hooks/useReviewPrompt';
 import { SkinScoreRing } from '@/components/report/SkinScoreRing';
-import { ScreenBackButton } from '@/components/ui/ScreenBackButton';
+import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { Reveal } from '@/components/ui/Reveal';
 import type { MainTabParamList, RootStackParamList } from '@/core/navigation/types';
 import { useHomeArticles } from '@/i18n/content/useLocalizedContent';
 import { useHomeMorningRoutine } from '@/hooks/useHomeMorningRoutine';
@@ -26,12 +32,22 @@ import { useHomeWeeklyInsight } from '@/hooks/useHomeWeeklyInsight';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useHomeHeaderDate } from '@/i18n/useFormattedDate';
 import { useHomeScanSummary } from '@/hooks/useHomeScanSummary';
-import {
-  HOME_DISPLAY_NAME,
-  HOME_STREAK_DAYS,
-} from '@/screens/home/homeMockData';
+import { useActivityStats } from '@/hooks/useActivityStats';
+import { useUserDisplayName } from '@/hooks/useUserDisplayName';
 import type { HomeRoutineStep } from '@/hooks/useHomeMorningRoutine';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import {
+  glow,
+  layout,
+  radius,
+  shadows,
+  spacing,
+  touchTarget,
+  typography,
+  useAppTheme,
+  useCarouselCardWidth,
+  useThemedStyles,
+} from '@/theme';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Home'>,
@@ -46,7 +62,358 @@ function useGreeting(): string {
   return t('home.greetingEvening');
 }
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingHorizontal: layout.screenPaddingX,
+    paddingBottom: spacing.md,
+    backgroundColor: colors.background,
+    gap: spacing.sm,
+  },
+  topBarCenter: {
+    flex: 1,
+    minWidth: 0,
+  },
+  greeting: {
+    ...typography.h2,
+    color: colors.textPrimary,
+    flexShrink: 1,
+  },
+  date: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  topActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    flexShrink: 0,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.accentLight,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    borderRadius: radius.full,
+  },
+  streakText: {
+    ...typography.label,
+    color: colors.accentTagText,
+    fontSize: 11,
+    letterSpacing: 0.3,
+  },
+  bellBtn: {
+    width: touchTarget,
+    height: touchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.full,
+  },
+  scroll: {
+    paddingHorizontal: layout.screenPaddingX,
+    gap: layout.sectionGap,
+  },
+  scoreCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minWidth: 0,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    ...shadows.md,
+  },
+  scoreRingPlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.ctaTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  scoreLeft: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: spacing.md,
+  },
+  scoreLabel: {
+    ...typography.label,
+    color: colors.textSecondary,
+    fontSize: 10,
+  },
+  scoreRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  scoreBig: {
+    ...typography.score,
+    color: colors.ctaGradientStart,
+  },
+  scoreDelta: {
+    fontFamily: typography.score.fontFamily,
+    fontSize: 13,
+    lineHeight: 20,
+    color: colors.primaryDark,
+    flexShrink: 1,
+  },
+  lastScan: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  scanBtn: {
+    alignSelf: 'flex-start',
+    marginTop: spacing.md,
+  },
+  scanBtnContent: {
+    gap: spacing.sm,
+  },
+  scanBtnLabel: {
+    ...typography.body,
+    color: colors.textInverse,
+    fontFamily: typography.h3.fontFamily,
+  },
+  quickActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  quickAction: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  quickIconWrap: {
+    width: 58,
+    height: 58,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surfaceElevated,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.sm,
+  },
+  quickLabel: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.textPrimary,
+    textTransform: 'none',
+    letterSpacing: 0,
+    textAlign: 'center',
+    width: '100%',
+  },
+  routineCard: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    ...shadows.sm,
+  },
+  routineHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: spacing.lg,
+  },
+  routineTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  routineProgress: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  miniTrack: {
+    width: 64,
+    height: 5,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  miniFill: {
+    height: '100%',
+    borderRadius: radius.full,
+  },
+  checkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+    backgroundColor: colors.background,
+    marginBottom: spacing.md,
+  },
+  checkRowDone: {
+    backgroundColor: colors.surfaceAlt,
+    borderColor: colors.primaryPale,
+  },
+  checkLabel: {
+    ...typography.bodyLg,
+    color: colors.textPrimary,
+    flex: 1,
+    minWidth: 0,
+  },
+  checkLabelDone: {
+    color: colors.primary,
+    textDecorationLine: 'line-through',
+    opacity: 0.7,
+  },
+  viewRoutine: {
+    alignItems: 'center',
+    marginTop: spacing.sm,
+  },
+  viewRoutineLabel: {
+    ...typography.label,
+    color: colors.ctaGradientStart,
+    fontFamily: typography.h3.fontFamily,
+    letterSpacing: 1.2,
+  },
+  insightCard: {
+    flexDirection: 'row',
+    gap: spacing.lg,
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.xl,
+    padding: spacing.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    ...shadows.md,
+  },
+  insightIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.full,
+    backgroundColor: colors.ctaTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...glow(colors.ctaGlow, 'md'),
+  },
+  insightBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  insightTitle: {
+    ...typography.h3,
+    fontSize: 16,
+    color: colors.ctaGradientStart,
+    marginBottom: spacing.xs,
+  },
+  insightText: {
+    ...typography.body,
+    color: colors.primaryDark,
+    lineHeight: 22,
+  },
+  insightBold: {
+    fontFamily: typography.h3.fontFamily,
+  },
+  learnHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  learnTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  seeAll: {
+    ...typography.label,
+    color: colors.ctaGradientStart,
+    textTransform: 'none',
+    letterSpacing: 0,
+  },
+  learnScroll: {
+    gap: spacing.md,
+    paddingBottom: spacing.sm,
+    paddingRight: spacing.sm,
+  },
+  articleCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: radius.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    padding: spacing.lg,
+    gap: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    ...shadows.sm,
+  },
+  articleIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.ctaTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  articleBody: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.sm,
+  },
+  articleTags: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  articleTag: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.full,
+  },
+  tagPrimary: {
+    backgroundColor: colors.ctaTint,
+  },
+  tagAccent: {
+    backgroundColor: colors.accentLight,
+  },
+  articleTagText: {
+    fontSize: 10,
+    fontFamily: typography.h3.fontFamily,
+    color: colors.onPrimaryPale,
+    textTransform: 'uppercase',
+  },
+  articleTagTextAccent: {
+    color: colors.accentTagText,
+  },
+  readTime: {
+    ...typography.label,
+    fontSize: 10,
+    color: colors.textSecondary,
+    textTransform: 'none',
+  },
+  articleTitle: {
+    ...typography.h3,
+    fontSize: 15,
+    lineHeight: 20,
+    color: colors.textPrimary,
+  },
+});
+}
+
 export function HomeScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
@@ -63,6 +430,28 @@ export function HomeScreen() {
   const today = useHomeHeaderDate();
   const scanSummary = useHomeScanSummary();
   const weeklyInsight = useHomeWeeklyInsight();
+  const displayName = useUserDisplayName();
+  const { streakDays, totalScans } = useActivityStats();
+  const { tryShowAnyPrompt } = useReviewPrompt();
+  const articleWidth = useCarouselCardWidth();
+
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      void (async () => {
+        const homeVisitCount = await incrementHomeVisitCount();
+        if (!active) return;
+        await tryShowAnyPrompt({
+          totalScans,
+          streakDays,
+          homeVisitCount,
+        });
+      })();
+      return () => {
+        active = false;
+      };
+    }, [totalScans, streakDays, tryShowAnyPrompt]),
+  );
 
   const openScan = useCallback(() => {
     navigation.navigate('ScanGuide');
@@ -70,13 +459,12 @@ export function HomeScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style={statusBarStyle} />
 
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.base }]}>
-        <ScreenBackButton style={styles.backBtn} />
         <View style={styles.topBarCenter}>
-          <Text style={styles.greeting}>
-            {greeting}, {HOME_DISPLAY_NAME} ☀️
+          <Text style={styles.greeting} numberOfLines={2}>
+            {displayName ? `${greeting}, ${displayName} ☀️` : `${greeting} ☀️`}
           </Text>
           <Text style={styles.date}>{today}</Text>
         </View>
@@ -84,14 +472,14 @@ export function HomeScreen() {
           <View style={styles.streakBadge}>
             <MaterialCommunityIcons name="fire" size={14} color={colors.accent} />
             <Text style={styles.streakText}>
-              {t('home.streak', { count: HOME_STREAK_DAYS })}
+              {t('home.streak', { count: streakDays })}
             </Text>
           </View>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t('common.notifications')}
             style={styles.bellBtn}
-            onPress={() => Alert.alert(t('common.notifications'), t('common.notificationsSoon'))}
+            onPress={() => navigation.navigate('Notifications')}
           >
             <MaterialCommunityIcons name="bell-outline" size={22} color={colors.textSecondary} />
           </Pressable>
@@ -102,45 +490,54 @@ export function HomeScreen() {
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 120 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.scoreCard}>
+        <Reveal index={0} style={styles.scoreCard}>
           <View style={styles.scoreLeft}>
             <Text style={styles.scoreLabel}>{t('home.skinHealthScore')}</Text>
             <View style={styles.scoreRow}>
-              <Text style={styles.scoreBig}>
-                {scanSummary.hasScan && scanSummary.score !== null
-                  ? scanSummary.score
-                  : '—'}
-              </Text>
+              {scanSummary.hasScan && scanSummary.score !== null ? (
+                <AnimatedCounter value={scanSummary.score} style={styles.scoreBig} />
+              ) : (
+                <Text style={styles.scoreBig}>—</Text>
+              )}
               {scanSummary.deltaLabel ? (
                 <Text style={styles.scoreDelta}>{scanSummary.deltaLabel}</Text>
               ) : null}
             </View>
             <Text style={styles.lastScan}>{scanSummary.lastScanLabel}</Text>
-            <Pressable style={styles.scanBtn} onPress={openScan}>
+            <GradientButton
+              onPress={openScan}
+              size="compact"
+              style={styles.scanBtn}
+              contentStyle={styles.scanBtnContent}
+            >
               <MaterialCommunityIcons name="image-filter-center-focus" size={18} color={colors.textInverse} />
               <Text style={styles.scanBtnLabel}>
                 {scanSummary.hasScan ? t('home.scanNow') : t('home.firstScan')}
               </Text>
-            </Pressable>
+            </GradientButton>
           </View>
           {scanSummary.hasScan && scanSummary.score !== null ? (
-            <SkinScoreRing score={scanSummary.score} size={96} />
+            <View style={{ flexShrink: 0 }}>
+              <SkinScoreRing score={scanSummary.score} size={96} />
+            </View>
           ) : (
             <View style={styles.scoreRingPlaceholder}>
-              <MaterialCommunityIcons name="camera-outline" size={36} color={colors.primaryPale} />
+              <MaterialCommunityIcons name="camera-outline" size={36} color={colors.onPrimaryPale} />
             </View>
           )}
-        </View>
+        </Reveal>
 
-        <View style={styles.quickActions}>
+        <CommunityTrustCard revealIndex={1} embedded />
+
+        <Reveal index={2} style={styles.quickActions}>
           {(
             [
               { key: 'scan', label: t('home.quickScan'), icon: 'qrcode-scan' as const, onPress: openScan },
               {
-                key: 'products',
-                label: t('home.quickProducts'),
-                icon: 'auto-fix' as const,
-                onPress: () => navigation.navigate('Products'),
+                key: 'science',
+                label: t('home.quickScience'),
+                icon: 'book-open-variant' as const,
+                onPress: () => navigation.navigate('ScienceLibrary'),
               },
               {
                 key: 'progress',
@@ -156,16 +553,16 @@ export function HomeScreen() {
               },
             ] as const
           ).map((action) => (
-            <Pressable key={action.key} style={styles.quickAction} onPress={action.onPress}>
+            <PressableScale key={action.key} style={styles.quickAction} onPress={action.onPress} haptic="light">
               <View style={styles.quickIconWrap}>
-                <MaterialCommunityIcons name={action.icon} size={24} color={colors.primary} />
+                <MaterialCommunityIcons name={action.icon} size={24} color={colors.ctaGradientStart} />
               </View>
               <Text style={styles.quickLabel}>{action.label}</Text>
-            </Pressable>
+            </PressableScale>
           ))}
-        </View>
+        </Reveal>
 
-        <View style={styles.routineCard}>
+        <Reveal index={3} style={styles.routineCard}>
           <View style={styles.routineHeader}>
             <View>
               <Text style={styles.routineTitle}>{t('home.morningRoutine')}</Text>
@@ -174,7 +571,13 @@ export function HomeScreen() {
               </Text>
             </View>
             <View style={styles.miniTrack}>
-              <View style={[styles.miniFill, { width: `${progressPct}%` }]} />
+              <LinearGradient
+                colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+                locations={[0, 0.48, 1]}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={[styles.miniFill, { width: `${progressPct}%` }]}
+              />
             </View>
           </View>
           {previewSteps.map((step) => (
@@ -191,38 +594,42 @@ export function HomeScreen() {
           >
             <Text style={styles.viewRoutineLabel}>{t('home.viewFullRoutine')}</Text>
           </Pressable>
-        </View>
+        </Reveal>
 
-        <View style={styles.insightCard}>
+        <Reveal index={4} style={styles.insightCard}>
           <View style={styles.insightIcon}>
-            <MaterialCommunityIcons name="water" size={22} color={colors.primary} />
+            <MaterialCommunityIcons name="water" size={22} color={colors.ctaGradientStart} />
           </View>
           <View style={styles.insightBody}>
             <Text style={styles.insightTitle}>{t('home.weeklyInsight')}</Text>
             <Text style={styles.insightText}>{weeklyInsight}</Text>
           </View>
-        </View>
+        </Reveal>
 
-        <View style={styles.learnHeader}>
+        <CommunityReviewsSection revealIndex={5} maxItems={4} carouselInset={false} />
+
+        <Reveal index={6} style={styles.learnHeader}>
           <Text style={styles.learnTitle}>{t('home.learnTitle')}</Text>
-          <Pressable
-            onPress={() => Alert.alert(t('home.articlesTitle'), t('home.articleSoon'))}
-          >
+          <Pressable onPress={() => navigation.navigate('ScienceLibrary')}>
             <Text style={styles.seeAll}>{t('common.seeAll')}</Text>
           </Pressable>
-        </View>
+        </Reveal>
+        <Reveal index={7}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.learnScroll}
         >
           {articles.map((article) => (
-            <Pressable
+            <PressableScale
               key={article.id}
-              style={styles.articleCard}
-              onPress={() => Alert.alert(article.title, t('home.articleSoon'))}
+              style={[styles.articleCard, { width: articleWidth }]}
+              haptic="light"
+              onPress={() => navigation.navigate('ArticleReader', { articleId: article.id })}
             >
-              <Image source={{ uri: article.imageUri }} style={styles.articleImage} contentFit="cover" />
+              <View style={styles.articleIcon}>
+                <MaterialCommunityIcons name={article.icon} size={24} color={colors.ctaGradientStart} />
+              </View>
               <View style={styles.articleBody}>
                 <View style={styles.articleTags}>
                   <View
@@ -246,21 +653,10 @@ export function HomeScreen() {
                   {article.title}
                 </Text>
               </View>
-            </Pressable>
+            </PressableScale>
           ))}
         </ScrollView>
-
-        <View style={styles.communityCard}>
-          <View style={styles.communityBlurContent}>
-            <Text style={styles.communityTitle}>{t('home.communityTitle')}</Text>
-            <Text style={styles.communityBody}>{t('home.communityBody')}</Text>
-          </View>
-          <BlurView intensity={20} style={styles.communityOverlay} tint="light">
-            <View style={styles.comingSoonPill}>
-              <Text style={styles.comingSoonText}>{t('home.communitySoon')}</Text>
-            </View>
-          </BlurView>
-        </View>
+        </Reveal>
       </ScrollView>
     </View>
   );
@@ -275,386 +671,24 @@ function RoutineCheckRow({
   done: boolean;
   onToggle: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   return (
-    <Pressable
+    <PressableScale
       style={[styles.checkRow, done && styles.checkRowDone]}
       onPress={onToggle}
+      haptic="selection"
+      pressedScale={0.99}
     >
       <MaterialCommunityIcons
         name={done ? 'check-circle' : 'circle-outline'}
         size={24}
         color={done ? colors.primary : colors.textTertiary}
       />
-      <Text style={[styles.checkLabel, done && styles.checkLabelDone]}>{step.name}</Text>
-    </Pressable>
+      <Text style={[styles.checkLabel, done && styles.checkLabelDone]} numberOfLines={2}>
+        {step.name}
+      </Text>
+    </PressableScale>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  topBar: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: spacing.base,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.background,
-    gap: spacing.sm,
-  },
-  backBtn: {
-    marginTop: 2,
-  },
-  topBarCenter: {
-    flex: 1,
-    minWidth: 0,
-  },
-  greeting: {
-    ...typography.h2,
-    color: colors.textPrimary,
-  },
-  date: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  topActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.accentLight,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
-    borderRadius: radius.full,
-  },
-  streakText: {
-    ...typography.label,
-    color: colors.primaryDark,
-    fontSize: 11,
-    letterSpacing: 0.3,
-  },
-  bellBtn: {
-    width: touchTarget,
-    height: touchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.full,
-  },
-  scroll: {
-    paddingHorizontal: spacing.base,
-    gap: spacing.xl,
-  },
-  scoreCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    ...shadows.sm,
-  },
-  scoreRingPlaceholder: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: colors.primaryPale,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scoreLeft: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  scoreLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    fontSize: 10,
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  scoreBig: {
-    ...typography.score,
-    color: colors.primary,
-  },
-  scoreDelta: {
-    fontFamily: typography.score.fontFamily,
-    fontSize: 13,
-    lineHeight: 20,
-    color: colors.primaryDark,
-    flexShrink: 1,
-  },
-  lastScan: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  scanBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    alignSelf: 'flex-start',
-    backgroundColor: colors.primary,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
-    marginTop: spacing.md,
-  },
-  scanBtnLabel: {
-    ...typography.body,
-    color: colors.textInverse,
-    fontFamily: typography.h3.fontFamily,
-  },
-  quickActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  quickAction: {
-    flex: 1,
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  quickIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: radius.lg,
-    backgroundColor: '#F1F3FF',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickLabel: {
-    ...typography.label,
-    fontSize: 10,
-    color: colors.textPrimary,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-  routineCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-  },
-  routineHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginBottom: spacing.lg,
-  },
-  routineTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
-  routineProgress: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  miniTrack: {
-    width: 64,
-    height: 4,
-    backgroundColor: '#F1F3FF',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  miniFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    backgroundColor: colors.background,
-    marginBottom: spacing.md,
-  },
-  checkRowDone: {
-    backgroundColor: colors.surfaceAlt,
-    borderColor: colors.primaryPale,
-  },
-  checkLabel: {
-    ...typography.bodyLg,
-    color: colors.textPrimary,
-  },
-  checkLabelDone: {
-    color: colors.primary,
-    textDecorationLine: 'line-through',
-    opacity: 0.7,
-  },
-  viewRoutine: {
-    alignItems: 'center',
-    marginTop: spacing.sm,
-  },
-  viewRoutineLabel: {
-    ...typography.label,
-    color: colors.primary,
-    fontFamily: typography.h3.fontFamily,
-    letterSpacing: 1.2,
-  },
-  insightCard: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-    backgroundColor: colors.surfaceAlt,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    borderWidth: 1,
-    borderColor: colors.primaryPale,
-  },
-  insightIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
-    backgroundColor: colors.primaryPale,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  insightBody: {
-    flex: 1,
-  },
-  insightTitle: {
-    ...typography.h3,
-    fontSize: 16,
-    color: colors.primary,
-    marginBottom: spacing.xs,
-  },
-  insightText: {
-    ...typography.body,
-    color: colors.primaryDark,
-    lineHeight: 22,
-  },
-  insightBold: {
-    fontFamily: typography.h3.fontFamily,
-  },
-  learnHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  learnTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
-  seeAll: {
-    ...typography.label,
-    color: colors.primary,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-  learnScroll: {
-    gap: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  articleCard: {
-    width: 288,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    overflow: 'hidden',
-  },
-  articleImage: {
-    width: '100%',
-    height: 160,
-    backgroundColor: '#F1F3FF',
-  },
-  articleBody: {
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  articleTags: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  articleTag: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-    borderRadius: radius.full,
-  },
-  tagPrimary: {
-    backgroundColor: colors.primaryPale,
-  },
-  tagAccent: {
-    backgroundColor: colors.accentLight,
-  },
-  articleTagText: {
-    fontSize: 10,
-    fontFamily: typography.h3.fontFamily,
-    color: colors.primaryDark,
-    textTransform: 'uppercase',
-  },
-  articleTagTextAccent: {
-    color: '#783D01',
-  },
-  readTime: {
-    ...typography.label,
-    fontSize: 10,
-    color: colors.textSecondary,
-    textTransform: 'none',
-  },
-  articleTitle: {
-    ...typography.h3,
-    fontSize: 15,
-    lineHeight: 20,
-    color: colors.textPrimary,
-  },
-  communityCard: {
-    borderRadius: radius.lg,
-    backgroundColor: '#F1F3FF',
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    overflow: 'hidden',
-    minHeight: 120,
-    marginBottom: spacing.md,
-  },
-  communityBlurContent: {
-    padding: spacing.xl,
-    opacity: 0.35,
-  },
-  communityTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  communityBody: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  communityOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  comingSoonPill: {
-    backgroundColor: 'rgba(20, 27, 43, 0.85)',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.full,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  comingSoonText: {
-    ...typography.label,
-    color: colors.textInverse,
-    letterSpacing: 0.8,
-  },
-});

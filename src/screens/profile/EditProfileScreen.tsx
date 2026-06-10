@@ -2,9 +2,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,60 +18,160 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ProfileSectionTitle } from '@/components/profile/ProfileSectionTitle';
+import { GenderSelectField } from '@/components/auth/GenderSelectField';
+import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { SkinGoalChips } from '@/components/profile/SkinGoalChips';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SectionHeading } from '@/components/ui/SectionHeading';
+import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import { TextField } from '@/components/ui/TextField';
 import type { RootStackParamList } from '@/core/navigation/types';
+import { loadQuizAnswers, saveQuizAnswers } from '@/core/storage/quizStorage';
+import { useLocalizedGoalOptions } from '@/i18n/content/useLocalizedContent';
 import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/useTranslation';
-import {
-  EDIT_PROFILE_DEFAULTS,
-  GENDER_OPTIONS,
-  type GenderValue,
-} from '@/screens/profile/editProfileData';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { GenderValue } from '@/screens/profile/editProfileData';
+import type { QuizAnswers } from '@/screens/onboarding/quiz/quizTypes';
+import { emptyQuizAnswers } from '@/screens/onboarding/quiz/quizTypes';
+import { upsertProfile } from '@/services/auth/profileService';
+import { useAuthStore } from '@/store/authStore';
+import type { AppColors } from '@/theme/palettes';
+import { layout, radius, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'EditProfile'>;
 
-const GENDER_LABEL_KEYS: Record<GenderValue, TranslationKey> = {
-  male: 'editProfile.genderMale',
-  female: 'editProfile.genderFemale',
-  'non-binary': 'editProfile.genderNonBinary',
-  'prefer-not-to-say': 'editProfile.genderPreferNot',
-};
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    flex: {
+      flex: 1,
+    },
+    scroll: {
+      paddingHorizontal: layout.screenPaddingX,
+      paddingTop: spacing.lg,
+      gap: layout.sectionGap,
+    },
+    photoSection: {
+      alignItems: 'center',
+      gap: spacing.md,
+      paddingBottom: spacing.xs,
+    },
+    cardBody: {
+      gap: spacing.lg,
+    },
+    field: {
+      gap: spacing.xs,
+    },
+    fieldLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+    },
+    emailWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: touchTarget,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceSunken,
+      paddingLeft: spacing.base,
+      paddingRight: spacing.sm,
+    },
+    emailInput: {
+      flex: 1,
+      ...typography.body,
+      color: colors.textSecondary,
+      paddingVertical: spacing.sm,
+    },
+    verifiedBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      backgroundColor: colors.primaryPale,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 5,
+      borderRadius: radius.full,
+    },
+    verifiedText: {
+      fontSize: 10,
+      fontFamily: typography.label.fontFamily,
+      color: colors.onPrimaryPale,
+      letterSpacing: 0.6,
+      textTransform: 'uppercase',
+    },
+    footer: {
+      paddingHorizontal: layout.screenPaddingX,
+      paddingTop: spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.hairline,
+      overflow: 'hidden',
+    },
+    saveBtn: {
+      borderRadius: radius.lg,
+    },
+    saveLoading: {
+      height: touchTarget,
+      borderRadius: radius.lg,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+      opacity: 0.85,
+    },
+  });
+}
 
 export function EditProfileScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle, blurTint } = useAppTheme();
+
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const goalOptions = useLocalizedGoalOptions();
 
-  const [firstName, setFirstName] = useState(EDIT_PROFILE_DEFAULTS.firstName);
-  const [lastName, setLastName] = useState(EDIT_PROFILE_DEFAULTS.lastName);
-  const [email, setEmail] = useState(EDIT_PROFILE_DEFAULTS.email);
-  const [dateOfBirth, setDateOfBirth] = useState(EDIT_PROFILE_DEFAULTS.dateOfBirth);
-  const [gender, setGender] = useState<GenderValue>(EDIT_PROFILE_DEFAULTS.gender);
-  const [skinGoals, setSkinGoals] = useState<string[]>(EDIT_PROFILE_DEFAULTS.skinGoals);
-  const [avatarUri] = useState(EDIT_PROFILE_DEFAULTS.avatarUri);
+  const profile = useAuthStore((s) => s.profile);
+  const user = useAuthStore((s) => s.user);
+  const setProfile = useAuthStore((s) => s.setProfile);
+
+  const emailVerified = Boolean(user?.email_confirmed_at);
+
+  const [firstName, setFirstName] = useState(profile?.firstName ?? '');
+  const [lastName, setLastName] = useState(profile?.lastName ?? '');
+  const email = profile?.email ?? user?.email ?? '';
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [gender, setGender] = useState<GenderValue>(profile?.gender ?? 'prefer-not-to-say');
+  const [skinGoals, setSkinGoals] = useState<string[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<QuizAnswers | null>(null);
   const [saving, setSaving] = useState(false);
 
   const [firstNameError, setFirstNameError] = useState<string | undefined>();
   const [lastNameError, setLastNameError] = useState<string | undefined>();
 
+  useEffect(() => {
+    setFirstName(profile?.firstName ?? '');
+    setLastName(profile?.lastName ?? '');
+    setGender(profile?.gender ?? 'prefer-not-to-say');
+  }, [profile]);
+
+  useEffect(() => {
+    let active = true;
+    void loadQuizAnswers().then((answers) => {
+      if (!active) return;
+      setQuizAnswers(answers);
+      setSkinGoals(answers?.goals ?? []);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const toggleGoal = (id: string) => {
     setSkinGoals((prev) =>
       prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
     );
-  };
-
-  const pickGender = () => {
-    Alert.alert(t('editProfile.gender'), undefined, [
-      ...GENDER_OPTIONS.map((opt) => ({
-        text: t(GENDER_LABEL_KEYS[opt.value]),
-        onPress: () => setGender(opt.value),
-      })),
-      { text: t('common.cancel'), style: 'cancel' },
-    ]);
   };
 
   const validate = (): boolean => {
@@ -93,18 +192,44 @@ export function EditProfileScreen() {
   const handleSave = async () => {
     if (!validate()) return;
     setSaving(true);
-    // TODO: PATCH /users/me
-    await new Promise((r) => setTimeout(r, 700));
-    setSaving(false);
-    Alert.alert(t('editProfile.saved'), t('editProfile.savedMessage'), [
-      { text: t('common.ok'), onPress: () => navigation.goBack() },
-    ]);
+    try {
+      if (user?.id) {
+        const updated = await upsertProfile({
+          userId: user.id,
+          email,
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          gender,
+        });
+        if (updated) setProfile(updated);
+      }
+
+      const nextAnswers: QuizAnswers = {
+        ...(quizAnswers ?? emptyQuizAnswers()),
+        goals: skinGoals,
+      };
+      await saveQuizAnswers(nextAnswers);
+      setQuizAnswers(nextAnswers);
+
+      Alert.alert(t('editProfile.saved'), t('editProfile.savedMessage'), [
+        { text: t('common.ok'), onPress: () => navigation.goBack() },
+      ]);
+    } catch {
+      Alert.alert(t('common.error'), t('editProfile.saveError'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenHeader topInset={insets.top} title={t('editProfile.title')} />
+      <StatusBar style={statusBarStyle} />
+      <ScreenHeader
+        topInset={insets.top}
+        title={t('editProfile.title')}
+        titleColor={colors.textPrimary}
+        variant="muted"
+      />
 
       <KeyboardAvoidingView
         style={styles.flex}
@@ -113,99 +238,84 @@ export function EditProfileScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.scroll,
-            { paddingBottom: insets.bottom + 100 },
+            { paddingBottom: insets.bottom + 108 },
           ]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.photoSection}>
-            <View style={styles.avatarWrap}>
-              <Image source={{ uri: avatarUri }} style={styles.avatar} contentFit="cover" />
-              <Pressable
-                style={styles.cameraBtn}
-                onPress={() => Alert.alert(t('editProfile.changePhoto'), t('profile.photoPickerSoon'))}
-              >
-                <MaterialCommunityIcons name="camera" size={18} color={colors.white} />
-              </Pressable>
-            </View>
-            <Pressable onPress={() => Alert.alert(t('editProfile.changePhoto'), t('profile.photoPickerSoon'))}>
-              <Text style={styles.changePhoto}>{t('editProfile.changePhoto')}</Text>
-            </Pressable>
+            <ProfileAvatar size="lg" showEdit />
           </View>
 
-          <View style={styles.section}>
-            <ProfileSectionTitle title={t('editProfile.personalInfo')} />
-            <View style={styles.nameRow}>
-              <View style={styles.nameField}>
-                <TextField
-                  label={t('editProfile.firstName')}
-                  value={firstName}
-                  onChangeText={setFirstName}
-                  error={firstNameError}
-                  autoCapitalize="words"
-                />
-              </View>
-              <View style={styles.nameField}>
-                <TextField
-                  label={t('editProfile.lastName')}
-                  value={lastName}
-                  onChangeText={setLastName}
-                  error={lastNameError}
-                  autoCapitalize="words"
-                />
-              </View>
-            </View>
-
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{t('editProfile.email')}</Text>
-              <View style={styles.emailWrap}>
-                <TextInput
-                  style={styles.emailInput}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  placeholderTextColor={colors.textTertiary}
-                />
-                <View style={styles.verifiedBadge}>
-                  <MaterialCommunityIcons name="check-decagram" size={14} color={colors.primaryDark} />
-                  <Text style={styles.verifiedText}>{t('editProfile.verified')}</Text>
+          <SurfaceCard variant="elevated" padding={layout.cardPadding}>
+            <SectionHeading title={t('editProfile.personalInfo')} uppercase={false} />
+            <View style={styles.cardBody}>
+              <TextField
+                label={t('editProfile.firstName')}
+                value={firstName}
+                onChangeText={setFirstName}
+                error={firstNameError}
+                autoCapitalize="words"
+              />
+              <TextField
+                label={t('editProfile.lastName')}
+                value={lastName}
+                onChangeText={setLastName}
+                error={lastNameError}
+                autoCapitalize="words"
+              />
+              <View style={styles.field}>
+                <Text style={styles.fieldLabel}>{t('editProfile.email')}</Text>
+                <View style={styles.emailWrap}>
+                  <TextInput
+                    style={styles.emailInput}
+                    value={email}
+                    editable={false}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    placeholder={t('editProfile.email')}
+                    placeholderTextColor={colors.textTertiary}
+                  />
+                  {emailVerified ? (
+                    <View style={styles.verifiedBadge}>
+                      <MaterialCommunityIcons
+                        name="check-decagram"
+                        size={14}
+                        color={colors.onPrimaryPale}
+                      />
+                      <Text style={styles.verifiedText}>{t('editProfile.verified')}</Text>
+                    </View>
+                  ) : null}
                 </View>
               </View>
             </View>
-          </View>
+          </SurfaceCard>
 
-          <View style={styles.section}>
-            <ProfileSectionTitle title={t('editProfile.demographics')} />
-            <View style={styles.nameRow}>
-              <View style={styles.nameField}>
-                <TextField
-                  label={t('editProfile.dateOfBirth')}
-                  value={dateOfBirth}
-                  onChangeText={setDateOfBirth}
-                  placeholder={t('editProfile.dobPlaceholder')}
-                />
-              </View>
-              <View style={styles.nameField}>
-                <Text style={styles.fieldLabel}>{t('editProfile.gender')}</Text>
-                <Pressable style={styles.selectField} onPress={pickGender}>
-                  <Text style={styles.selectValue}>{t(GENDER_LABEL_KEYS[gender])}</Text>
-                  <MaterialCommunityIcons
-                    name="chevron-down"
-                    size={22}
-                    color={colors.textSecondary}
-                  />
-                </Pressable>
-              </View>
+          <SurfaceCard variant="elevated" padding={layout.cardPadding}>
+            <SectionHeading title={t('editProfile.demographics')} uppercase={false} />
+            <View style={styles.cardBody}>
+              <TextField
+                label={t('editProfile.dateOfBirth')}
+                value={dateOfBirth}
+                onChangeText={setDateOfBirth}
+                placeholder={t('editProfile.dobPlaceholder')}
+              />
+              <GenderSelectField
+                value={gender}
+                onChange={setGender}
+                labelKey="editProfile.gender"
+              />
             </View>
-          </View>
+          </SurfaceCard>
 
-          <View style={styles.section}>
-            <ProfileSectionTitle
+          <SurfaceCard variant="elevated" padding={layout.cardPadding}>
+            <SectionHeading
               title={t('editProfile.skinGoals')}
               subtitle={t('editProfile.skinGoalsSub')}
+              uppercase={false}
             />
             <SkinGoalChips
+              options={goalOptions}
               selected={skinGoals}
               maxSelect={3}
               onToggle={toggleGoal}
@@ -213,161 +323,28 @@ export function EditProfileScreen() {
                 Alert.alert(t('editProfile.skinGoals'), t('editProfile.goalLimit'))
               }
             />
-          </View>
+          </SurfaceCard>
         </ScrollView>
 
         <BlurView
           intensity={72}
-          tint="light"
+          tint={blurTint}
           style={[styles.footer, { paddingBottom: insets.bottom + spacing.lg }]}
         >
-          <Pressable
-            style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
-            onPress={handleSave}
-            disabled={saving}
-          >
-            {saving ? (
+          {saving ? (
+            <View style={styles.saveLoading}>
               <ActivityIndicator color={colors.white} />
-            ) : (
-              <Text style={styles.saveLabel}>{t('editProfile.saveChanges')}</Text>
-            )}
-          </Pressable>
+            </View>
+          ) : (
+            <PrimaryButton
+              label={t('editProfile.saveChanges')}
+              onPress={handleSave}
+              variant="green"
+              style={styles.saveBtn}
+            />
+          )}
         </BlurView>
       </KeyboardAvoidingView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  scroll: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    gap: spacing.xxl,
-  },
-  photoSection: {
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  avatarWrap: {
-    position: 'relative',
-  },
-  avatar: {
-    width: 112,
-    height: 112,
-    borderRadius: radius.full,
-    borderWidth: 4,
-    borderColor: colors.white,
-    ...shadows.sm,
-  },
-  cameraBtn: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 36,
-    height: 36,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.sm,
-  },
-  changePhoto: {
-    ...typography.body,
-    fontFamily: typography.h3.fontFamily,
-    color: colors.primary,
-  },
-  section: {
-    gap: spacing.lg,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  nameField: {
-    flex: 1,
-  },
-  field: {
-    gap: 8,
-  },
-  fieldLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  emailWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: touchTarget,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingLeft: spacing.lg,
-    paddingRight: spacing.sm,
-  },
-  emailInput: {
-    flex: 1,
-    ...typography.bodyLg,
-    color: colors.textPrimary,
-    paddingVertical: spacing.sm,
-  },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(183, 228, 199, 0.35)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: radius.md,
-  },
-  verifiedText: {
-    fontSize: 10,
-    fontFamily: typography.label.fontFamily,
-    color: colors.primaryDark,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  selectField: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minHeight: touchTarget,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    paddingHorizontal: spacing.lg,
-  },
-  selectValue: {
-    ...typography.bodyLg,
-    color: colors.textPrimary,
-  },
-  footer: {
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderMuted,
-    overflow: 'hidden',
-  },
-  saveBtn: {
-    height: touchTarget,
-    borderRadius: radius.lg,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...shadows.sm,
-  },
-  saveBtnDisabled: {
-    opacity: 0.7,
-  },
-  saveLabel: {
-    ...typography.h3,
-    color: colors.white,
-  },
-});

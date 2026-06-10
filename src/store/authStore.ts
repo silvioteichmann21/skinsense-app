@@ -13,6 +13,11 @@ import {
 } from '@/services/auth/authService';
 import { fetchProfile } from '@/services/auth/profileService';
 import { useRoutineStore } from '@/store/routineStore';
+import { useSkinStore } from '@/store/skinStore';
+import {
+  evaluateStreakAtRisk,
+  rescheduleNotifications,
+} from '@/services/notifications/notificationService';
 import type { SignUpParams, UserProfile } from '@/types/auth';
 import type { TranslationKey } from '@/i18n/useTranslation';
 
@@ -31,7 +36,16 @@ type AuthStore = {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ errorKey?: TranslationKey }>;
   setSession: (session: Session | null) => void;
+  setProfile: (profile: UserProfile | null) => void;
 };
+
+async function reloadUserLocalData(): Promise<void> {
+  useSkinStore.getState().resetForUserSwitch();
+  await useSkinStore.getState().loadHistory();
+  await useRoutineStore.getState().hydrate();
+  await rescheduleNotifications();
+  await evaluateStreakAtRisk();
+}
 
 async function runPostAuthSync(userId: string): Promise<void> {
   try {
@@ -65,6 +79,10 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     });
   },
 
+  setProfile: (profile) => {
+    set({ profile });
+  },
+
   initialize: async () => {
     try {
       const state = await loadAuthState();
@@ -75,6 +93,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         isInitialized: true,
       });
 
+      await reloadUserLocalData();
       if (state.user?.id) {
         await runPostAuthSync(state.user.id);
       }
@@ -84,13 +103,18 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
 
       supabase.auth.onAuthStateChange(async (_event, session) => {
         const user = session?.user ?? null;
+        const prevUserId = get().user?.id ?? null;
+        const nextUserId = user?.id ?? null;
         let profile = get().profile;
         try {
-          if (user && (!profile || profile.id !== user.id)) {
-            profile = (await fetchProfile(user.id)) ?? null;
-            if (user) {
+          if (nextUserId !== prevUserId) {
+            await reloadUserLocalData();
+            if (user?.id) {
               await runPostAuthSync(user.id);
             }
+          }
+          if (user && (!profile || profile.id !== user.id)) {
+            profile = (await fetchProfile(user.id)) ?? null;
           }
           if (!user) profile = null;
           set({ session, user, profile });
@@ -113,10 +137,9 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
         user: result.user ?? null,
         profile: result.profile ?? null,
       });
-      if (result.user?.id) {
-        await runPostAuthSync(result.user.id);
-      }
       return {};
+    } catch {
+      return { errorKey: 'auth.networkError' };
     } finally {
       set({ isLoading: false });
     }
@@ -148,6 +171,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       await authSignOut();
       set({ session: null, user: null, profile: null });
+      await reloadUserLocalData();
     } finally {
       set({ isLoading: false });
     }

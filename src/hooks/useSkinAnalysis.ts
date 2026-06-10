@@ -112,6 +112,7 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
 
       setStage('sync');
       setProgressMonotonic(lerpProgress('sync', 0.3));
+      const angleImageUris = useSkinStore.getState().pendingAnglePhotos ?? undefined;
       const stored = await submitScan({
         payload: { scoreVector: vector, quizContext: quiz },
         imageUri: storedUri,
@@ -119,6 +120,7 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
         modelVersion: ON_DEVICE_MODEL_VERSION,
         usedCloudRefine,
         localResult: { ...analysis, imageUri: storedUri },
+        angleImageUris,
       });
       setProgressMonotonic(lerpProgress('sync', 1));
 
@@ -127,6 +129,7 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
       setStage('save');
       setProgressMonotonic(lerpProgress('save', 0.5));
       await useSkinStore.getState().addAnalysisResult(stored);
+      useSkinStore.getState().setPendingAnglePhotos(null);
       await useRoutineStore.getState().setFromScan(stored, quiz);
       setProgressMonotonic(lerpProgress('save', 1));
 

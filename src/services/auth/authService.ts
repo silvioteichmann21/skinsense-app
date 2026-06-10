@@ -1,7 +1,7 @@
 import type { Session, User } from '@supabase/supabase-js';
 
 import { isSupabaseConfigured } from '@/config/env';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, pingSupabase } from '@/lib/supabase';
 import { authErrorKey } from '@/services/auth/authErrors';
 import {
   ensureProfileForUser,
@@ -10,6 +10,25 @@ import {
 } from '@/services/auth/profileService';
 import type { SignUpParams, UserProfile } from '@/types/auth';
 import type { TranslationKey } from '@/i18n/useTranslation';
+
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null && 'message' in error) {
+    return String((error as { message: unknown }).message);
+  }
+  return String(error);
+}
+
+function isNetworkFailure(error: unknown): boolean {
+  const message = errorMessage(error).toLowerCase();
+  return (
+    message.includes('network') ||
+    message.includes('fetch') ||
+    message.includes('failed to fetch') ||
+    message.includes('timeout') ||
+    message.includes('abort')
+  );
+}
 
 export type AuthResult = {
   errorKey?: TranslationKey;
@@ -58,8 +77,7 @@ export async function signInWithEmail(
       profile,
     };
   } catch (e) {
-    const message = e instanceof Error ? e.message : '';
-    if (message.toLowerCase().includes('fetch') || message.toLowerCase().includes('network')) {
+    if (isNetworkFailure(e)) {
       return { errorKey: 'auth.networkError' };
     }
     return { errorKey: 'auth.genericError' };
@@ -111,8 +129,7 @@ export async function signUpWithEmail(params: SignUpParams): Promise<AuthResult>
 
     return { user, session, needsEmailConfirmation };
   } catch (e) {
-    const message = e instanceof Error ? e.message : '';
-    if (message.toLowerCase().includes('fetch') || message.toLowerCase().includes('network')) {
+    if (isNetworkFailure(e)) {
       return { errorKey: 'auth.networkError' };
     }
     return { errorKey: 'auth.genericError' };
@@ -164,6 +181,12 @@ export async function loadAuthState(): Promise<{
 
     const session = data.session;
     const user = session?.user ?? null;
+
+    const reachable = await pingSupabase();
+    if (!reachable) {
+      return { session, user, profile: null };
+    }
+
     let profile = user ? await fetchProfile(user.id) : null;
     if (user && !profile) {
       profile = await ensureProfileForUser(user);

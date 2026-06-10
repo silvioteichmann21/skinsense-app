@@ -2,27 +2,15 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import type { TimelinePhoto } from '@/screens/progress/progressMockData';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles } from '@/theme';
 
 type Props = {
   photo: TimelinePhoto;
 };
 
-export function PhotoTimelineCard({ photo }: Props) {
-  return (
-    <View style={[styles.card, photo.dimmed && styles.cardDimmed]}>
-      <View style={[styles.imageWrap, photo.dimmed && styles.imageDimmed]}>
-        <Image source={{ uri: photo.imageUri }} style={styles.image} contentFit="cover" />
-      </View>
-      <Text style={styles.date}>{photo.dateLabel}</Text>
-      <View style={[styles.scorePill, photo.dimmed && styles.scorePillMuted]}>
-        <Text style={[styles.scoreText, photo.dimmed && styles.scoreTextMuted]}>{photo.score}</Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   card: {
     width: 140,
     backgroundColor: colors.surface,
@@ -76,3 +64,20 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 });
+}
+
+export function PhotoTimelineCard({
+ photo }: Props) {
+  const styles = useThemedStyles(createStyles);
+  return (
+    <View style={[styles.card, photo.dimmed && styles.cardDimmed]}>
+      <View style={[styles.imageWrap, photo.dimmed && styles.imageDimmed]}>
+        <Image source={{ uri: photo.imageUri }} style={styles.image} contentFit="cover" />
+      </View>
+      <Text style={styles.date}>{photo.dateLabel}</Text>
+      <View style={[styles.scorePill, photo.dimmed && styles.scorePillMuted]}>
+        <Text style={[styles.scoreText, photo.dimmed && styles.scoreTextMuted]}>{photo.score}</Text>
+      </View>
+    </View>
+  );
+}

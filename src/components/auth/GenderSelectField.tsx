@@ -13,7 +13,8 @@ import {
 import type { GenderValue } from '@/types/profile';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
-import { colors, radius, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, touchTarget, typography, useAppTheme, useThemedStyles } from '@/theme';
 
 const GENDER_LABEL_KEYS: Record<GenderValue, TranslationKey> = {
   male: 'editProfile.genderMale',
@@ -34,6 +35,46 @@ type Props = {
   onSelected?: () => void;
 };
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    wrap: {
+      gap: spacing.xs,
+    },
+    label: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginBottom: 2,
+    },
+    fieldWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: touchTarget,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceAlt,
+    },
+    fieldError: {
+      borderColor: colors.error,
+    },
+    input: {
+      flex: 1,
+      paddingHorizontal: spacing.base,
+      ...typography.body,
+      color: colors.textPrimary,
+    },
+    chevronBtn: {
+      paddingHorizontal: spacing.md,
+      justifyContent: 'center',
+      minHeight: touchTarget,
+    },
+    error: {
+      ...typography.caption,
+      color: colors.error,
+    },
+  });
+}
+
 export const GenderSelectField = forwardRef<TextInputType, Props>(function GenderSelectField(
   {
     value,
@@ -47,6 +88,8 @@ export const GenderSelectField = forwardRef<TextInputType, Props>(function Gende
   },
   ref,
 ) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
 
   const displayValue = value ? t(GENDER_LABEL_KEYS[value]) : '';
@@ -105,42 +148,4 @@ export const GenderSelectField = forwardRef<TextInputType, Props>(function Gende
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
-});
-
-const styles = StyleSheet.create({
-  wrap: {
-    gap: spacing.xs,
-  },
-  label: {
-    ...typography.label,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  fieldWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: touchTarget,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.white,
-  },
-  fieldError: {
-    borderColor: colors.error,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: spacing.base,
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  chevronBtn: {
-    paddingHorizontal: spacing.md,
-    justifyContent: 'center',
-    minHeight: touchTarget,
-  },
-  error: {
-    ...typography.caption,
-    color: colors.error,
-  },
 });

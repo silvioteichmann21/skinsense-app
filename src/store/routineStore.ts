@@ -29,6 +29,7 @@ type RoutineStore = {
     result: SkinAnalysisResult,
     quiz: QuizAnswers | null,
   ) => Promise<PersonalizedRoutine>;
+  saveRoutine: (routine: PersonalizedRoutine) => Promise<void>;
   getRoutineForResult: (
     result: SkinAnalysisResult,
     quiz?: QuizAnswers | null,
@@ -84,6 +85,17 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
     }
 
     return generated;
+  },
+
+  saveRoutine: async (routine) => {
+    const scanId = get().scanId;
+    await saveStoredRoutine(routine, scanId);
+    set({ routine, hydrated: true });
+
+    const userId = await getSignedInUserId();
+    if (userId) {
+      void upsertUserRoutine(userId, routine, scanId);
+    }
   },
 }));
 

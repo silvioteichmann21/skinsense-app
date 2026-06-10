@@ -9,7 +9,8 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, spacing } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { spacing, useAppTheme, useThemedStyles } from '@/theme';
 
 type Props = {
   count: number;
@@ -17,10 +18,28 @@ type Props = {
   variant?: 'light' | 'dark';
 };
 
+function createStyles(_colors: AppColors) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      alignSelf: 'center',
+      gap: spacing.sm,
+    },
+    dot: {
+      height: 8,
+      borderRadius: 4,
+    },
+  });
+}
+
 function Dot({ active, variant }: { active: boolean; variant: 'light' | 'dark' }) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const progress = useSharedValue(active ? 1 : 0);
   const inactive = variant === 'dark' ? 'rgba(255,255,255,0.3)' : colors.border;
-  const activeColor = variant === 'dark' ? colors.white : colors.primary;
+  const activeColor = variant === 'dark' ? colors.ctaGradientStart : colors.ctaGradientEnd;
 
   useEffect(() => {
     progress.value = withTiming(active ? 1 : 0, {
@@ -38,6 +57,8 @@ function Dot({ active, variant }: { active: boolean; variant: 'light' | 'dark' }
 }
 
 export function PaginationDots({ count, activeIndex, variant = 'dark' }: Props) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.row}>
       {Array.from({ length: count }).map((_, i) => (
@@ -46,17 +67,3 @@ export function PaginationDots({ count, activeIndex, variant = 'dark' }: Props) 
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    gap: spacing.sm,
-  },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-});

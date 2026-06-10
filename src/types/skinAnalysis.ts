@@ -12,7 +12,10 @@ export type ReportConcern = {
   severity: ConcernSeverity;
   severityLabel: string;
   barPercent: number;
+  /** Legacy English copy; prefer insightId + i18n */
   insight?: string;
+  /** Key under reportData.concerns.{id}.insights.* */
+  insightId?: string;
 };
 
 export type SkinTypeChip = {
@@ -66,7 +69,7 @@ export function createMockAnalysisResult(imageUri: string): SkinAnalysisResult {
         severity: 'medium',
         severityLabel: 'MEDIUM SEVERITY',
         barPercent: 60,
-        insight: 'Mild dehydration detected around cheeks.',
+        insightId: 'mildCheeks',
       },
       {
         id: 'acne',
@@ -91,7 +94,7 @@ export function createMockAnalysisResult(imageUri: string): SkinAnalysisResult {
         severity: 'healthy',
         severityLabel: 'HEALTHY',
         barPercent: 92,
-        insight: 'Your moisture barrier is performing well.',
+        insightId: 'performingWell',
       },
     ],
     positives: ['Strong skin barrier', 'Good elasticity'],

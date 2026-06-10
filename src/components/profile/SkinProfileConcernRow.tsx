@@ -2,12 +2,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import type { SkinProfileConcern } from '@/screens/profile/skinProfileMockData';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { LocalizedSkinProfileConcern } from '@/i18n/content/useLocalizedSkinProfile';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-function trendMeta(trend: SkinProfileConcern['trend']) {
+function trendMeta(trend: LocalizedSkinProfileConcern['trend'], colors: AppColors) {
   switch (trend) {
     case 'up':
       return { icon: 'trending-up' as IconName, color: colors.accent };
@@ -20,61 +22,19 @@ function trendMeta(trend: SkinProfileConcern['trend']) {
   }
 }
 
-function barColor(concern: SkinProfileConcern): string {
-  if (concern.severityLabel === 'NONE') return colors.borderMuted;
-  if (concern.severityLabel === 'MEDIUM') return colors.accent;
-  if (concern.trend === 'stable') return '#BFC9C1';
+function barColor(concern: LocalizedSkinProfileConcern, colors: AppColors): string {
+  if (concern.severity === 'none') return colors.borderMuted;
+  if (concern.severity === 'medium') return colors.accent;
+  if (concern.trend === 'stable') return colors.switchTrackOff;
   return colors.primary;
 }
 
 type Props = {
-  concern: SkinProfileConcern;
+  concern: LocalizedSkinProfileConcern;
 };
 
-export function SkinProfileConcernRow({ concern }: Props) {
-  const trend = trendMeta(concern.trend);
-  const none = concern.severityLabel === 'NONE';
-
-  return (
-    <View style={styles.row}>
-      <View style={styles.head}>
-        <Text style={styles.name}>{concern.name}</Text>
-        {none ? (
-          <Text style={styles.noneLabel}>NONE</Text>
-        ) : (
-          <View style={styles.severityRow}>
-            <Text
-              style={[
-                styles.severityLabel,
-                concern.severityLabel === 'MEDIUM' && styles.severityMedium,
-              ]}
-            >
-              {concern.severityLabel}
-            </Text>
-            {trend ? (
-              <MaterialCommunityIcons name={trend.icon} size={16} color={trend.color} />
-            ) : null}
-          </View>
-        )}
-      </View>
-      <View style={[styles.track, none && styles.trackMuted]}>
-        {!none ? (
-          <View
-            style={[
-              styles.fill,
-              {
-                width: `${concern.barPercent}%`,
-                backgroundColor: barColor(concern),
-              },
-            ]}
-          />
-        ) : null}
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   row: {
     gap: spacing.sm,
   },
@@ -123,3 +83,50 @@ const styles = StyleSheet.create({
     borderRadius: 2,
   },
 });
+}
+
+export function SkinProfileConcernRow({ concern }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  const { t } = useTranslation();
+  const trend = trendMeta(concern.trend, colors);
+  const none = concern.severity === 'none';
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.head}>
+        <Text style={styles.name}>{concern.name}</Text>
+        {none ? (
+          <Text style={styles.noneLabel}>{t('skinProfileData.severity.none')}</Text>
+        ) : (
+          <View style={styles.severityRow}>
+            <Text
+              style={[
+                styles.severityLabel,
+                concern.severity === 'medium' && styles.severityMedium,
+              ]}
+            >
+              {concern.severityLabel}
+            </Text>
+            {trend ? (
+              <MaterialCommunityIcons name={trend.icon} size={16} color={trend.color} />
+            ) : null}
+          </View>
+        )}
+      </View>
+      <View style={[styles.track, none && styles.trackMuted]}>
+        {!none ? (
+          <View
+            style={[
+              styles.fill,
+              {
+                width: `${concern.barPercent}%`,
+                backgroundColor: barColor(concern, colors),
+              },
+            ]}
+          />
+        ) : null}
+      </View>
+    </View>
+  );
+}

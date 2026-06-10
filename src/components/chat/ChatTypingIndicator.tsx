@@ -1,26 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
-import { colors, radius, shadows, spacing } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, shadows, spacing, useThemedStyles, useAppTheme } from '@/theme';
 
-export function ChatTypingIndicator() {
-  return (
-    <View style={styles.row}>
-      <View style={styles.avatar}>
-        <MaterialCommunityIcons name="leaf" size={16} color={colors.white} />
-      </View>
-      <View style={styles.bubble}>
-        <View style={styles.dots}>
-          <View style={[styles.dot, styles.dot1]} />
-          <View style={[styles.dot, styles.dot2]} />
-          <View style={[styles.dot, styles.dot3]} />
-        </View>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -69,3 +54,24 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
 });
+}
+
+export function ChatTypingIndicator() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
+  return (
+    <View style={styles.row}>
+      <View style={styles.avatar}>
+        <MaterialCommunityIcons name="leaf" size={16} color={colors.white} />
+      </View>
+      <View style={styles.bubble}>
+        <View style={styles.dots}>
+          <View style={[styles.dot, styles.dot1]} />
+          <View style={[styles.dot, styles.dot2]} />
+          <View style={[styles.dot, styles.dot3]} />
+        </View>
+      </View>
+    </View>
+  );
+}

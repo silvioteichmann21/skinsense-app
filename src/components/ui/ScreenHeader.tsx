@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { ScreenBackButton, ScreenHeaderSpacer } from '@/components/ui/ScreenBackButton';
-import { colors, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { layout } from '@/theme/layout';
+import { spacing, touchTarget, typography, useAppTheme, useThemedStyles } from '@/theme';
 
 type Variant = 'default' | 'muted' | 'inverse';
 
@@ -16,6 +18,27 @@ type Props = {
   onBackPress?: () => void;
 };
 
+function createStyles(_colors: AppColors) {
+  return StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: layout.screenPaddingX,
+      minHeight: touchTarget,
+    },
+    title: {
+      ...typography.h2,
+      flex: 1,
+      textAlign: 'center',
+      marginHorizontal: spacing.xs,
+    },
+    titleFlex: {
+      flex: 1,
+    },
+  });
+}
+
 export function ScreenHeader({
   topInset,
   title,
@@ -25,9 +48,10 @@ export function ScreenHeader({
   style,
   onBackPress,
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const resolvedTitleColor =
-    titleColor ??
-    (variant === 'inverse' ? colors.textInverse : colors.primary);
+    titleColor ?? (variant === 'inverse' ? colors.textInverse : colors.primary);
 
   return (
     <View style={[styles.bar, { paddingTop: topInset }, style]}>
@@ -43,22 +67,3 @@ export function ScreenHeader({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.base,
-    minHeight: touchTarget,
-  },
-  title: {
-    ...typography.h2,
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: spacing.xs,
-  },
-  titleFlex: {
-    flex: 1,
-  },
-});

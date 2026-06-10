@@ -15,11 +15,11 @@
     flex-direction: row;
     align-items: stretch;
     gap: 0;
-    border-radius: var(--radius);
+    border-radius: var(--radius-lg);
+    background: var(--card-gradient);
+    padding: 0.4rem;
+    border: 1px solid var(--border-strong);
     box-shadow: var(--shadow-soft);
-    background: var(--surface);
-    padding: 0.35rem;
-    border: 1px solid var(--border);
   }
 
   .formInline .input {
@@ -27,6 +27,7 @@
     box-shadow: none;
     flex: 1;
     min-width: 0;
+    background: transparent;
   }
 
   .formInline .input:focus {
@@ -60,10 +61,10 @@
     flex-direction: row;
     align-items: stretch;
     max-width: 32rem;
-    padding: 0.35rem;
-    background: var(--surface);
-    border-radius: var(--radius);
-    border: 1px solid rgba(45, 106, 79, 0.12);
+    padding: 0.4rem;
+    background: var(--card-gradient);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-strong);
     box-shadow: var(--shadow-soft);
   }
 
@@ -71,6 +72,7 @@
     flex: 1;
     border: none;
     box-shadow: none;
+    background: transparent;
   }
 
   .formCard .submit {
@@ -79,12 +81,11 @@
   }
 }
 
-
 .input {
   height: 3.5rem;
   padding: 0 1.15rem;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   background: var(--surface);
   font: inherit;
   font-size: 1rem;
@@ -98,29 +99,29 @@
 
 .input:focus {
   outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(45, 106, 79, 0.12);
+  border-color: var(--cta-mid);
+  box-shadow: 0 0 0 3px var(--cta-tint);
 }
 
 .submit {
   height: 3.5rem;
   padding: 0 1.75rem;
   border: none;
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+  border-radius: 999px;
+  background: var(--gradient-cta);
   color: #fff;
   font: inherit;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(27, 67, 50, 0.25);
-  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 24px var(--cta-glow);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   white-space: nowrap;
 }
 
 .submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(27, 67, 50, 0.3);
+  box-shadow: 0 8px 32px rgba(232, 121, 249, 0.55);
 }
 
 .submit:active:not(:disabled) {
@@ -128,7 +129,7 @@
 }
 
 .submit:disabled {
-  opacity: 0.7;
+  opacity: 0.6;
   cursor: wait;
 }
 
@@ -152,9 +153,9 @@
 }
 
 .messageSuccess {
-  color: var(--primary-dark);
+  color: var(--cta-start);
 }
 
 .messageError {
-  color: #b91c1c;
+  color: #ff6b6b;
 }

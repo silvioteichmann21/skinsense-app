@@ -3,11 +3,12 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { RootStackParamList } from '@/core/navigation/types';
 import { saveQuizAnswers } from '@/core/storage/quizStorage';
+import { useUserDisplayName } from '@/hooks/useUserDisplayName';
 import { useQuizContent } from '@/i18n/content/useLocalizedContent';
 import { useTranslation } from '@/i18n/useTranslation';
 import {
@@ -16,11 +17,13 @@ import {
   QuizHelpCard,
   QuizListOptions,
 } from '@/screens/onboarding/quiz/QuizOptionCards';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { QuizHeader } from '@/screens/onboarding/quiz/QuizHeader';
 import { QuizProgress } from '@/screens/onboarding/quiz/QuizProgress';
 import { QUIZ_TOTAL_STEPS } from '@/screens/onboarding/quiz/quizSteps';
 import { emptyQuizAnswers, type QuizAnswers } from '@/screens/onboarding/quiz/quizTypes';
-import { colors, radius, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type QuizNav = NativeStackNavigationProp<RootStackParamList, 'SkinQuiz'>;
 type QuizRoute = RouteProp<RootStackParamList, 'SkinQuiz'>;
@@ -31,14 +34,72 @@ function toggleInList(list: string[], id: string, max: number): string[] {
   return [...list, id];
 }
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.base,
+  },
+  title: {
+    ...typography.h1,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  subtitle: {
+    ...typography.bodyLg,
+    color: colors.textSecondary,
+    marginBottom: spacing.xl,
+  },
+  footer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingHorizontal: spacing.base,
+    paddingTop: spacing.base,
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.borderMuted,
+    shadowColor: colors.shadowColor,
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.03,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  continueBtn: {
+    width: '100%',
+  },
+  continueLabel: {
+    ...typography.h3,
+    color: colors.textInverse,
+  },
+  footerCaption: {
+    ...typography.label,
+    color: colors.textTertiary,
+    textAlign: 'center',
+    marginTop: spacing.sm,
+    textTransform: 'none',
+    letterSpacing: 0,
+  },
+});
+}
+
 export function SkinQuizScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
   const navigation = useNavigation<QuizNav>();
   const route = useRoute<QuizRoute>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { concerns, skinTypes, routines, ages, goals, steps } = useQuizContent();
 
-  const displayName = route.params?.displayName;
+  const profileName = useUserDisplayName();
+  const displayName = route.params?.displayName?.trim() || profileName || undefined;
 
   const [step, setStep] = useState(1);
   const [answers, setAnswers] = useState<QuizAnswers>(emptyQuizAnswers);
@@ -113,7 +174,7 @@ export function SkinQuizScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style={statusBarStyle} />
       <QuizHeader
         step={step}
         totalSteps={QUIZ_TOTAL_STEPS}
@@ -204,17 +265,13 @@ export function SkinQuizScreen() {
       </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: footerBottom }]}>
-        <Pressable
+        <GradientButton
           onPress={handleContinue}
           disabled={!canContinue()}
-          style={({ pressed }) => [
-            styles.continueBtn,
-            !canContinue() && styles.continueDisabled,
-            pressed && canContinue() && styles.continuePressed,
-          ]}
+          style={styles.continueBtn}
         >
           <Text style={styles.continueLabel}>{t('onboarding.continue')}</Text>
-        </Pressable>
+        </GradientButton>
         {step === 1 ? (
           <Text style={styles.footerCaption}>{meta.footerCaption}</Text>
         ) : null}
@@ -222,65 +279,3 @@ export function SkinQuizScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scroll: {
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.base,
-  },
-  title: {
-    ...typography.h1,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  subtitle: {
-    ...typography.bodyLg,
-    color: colors.textSecondary,
-    marginBottom: spacing.xl,
-  },
-  footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingHorizontal: spacing.base,
-    paddingTop: spacing.base,
-    backgroundColor: colors.surface,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.borderMuted,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.03,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  continueBtn: {
-    height: touchTarget,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  continueDisabled: {
-    opacity: 0.45,
-  },
-  continuePressed: {
-    transform: [{ scale: 0.98 }],
-  },
-  continueLabel: {
-    ...typography.h3,
-    color: colors.textInverse,
-  },
-  footerCaption: {
-    ...typography.label,
-    color: colors.textTertiary,
-    textAlign: 'center',
-    marginTop: spacing.sm,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-});

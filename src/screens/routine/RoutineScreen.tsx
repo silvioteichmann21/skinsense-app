@@ -3,6 +3,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -16,7 +17,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { RoutineStepCard } from '@/components/routine/RoutineStepCard';
-import { ScreenBackButton } from '@/components/ui/ScreenBackButton';
+import { SegmentedControl } from '@/components/ui/SegmentedControl';
+import { TabScreenHeader } from '@/components/ui/TabScreenHeader';
 import {
   getCompletedStepIds,
   toggleStepCompleted,
@@ -24,27 +26,115 @@ import {
 } from '@/core/storage/routinePreferences';
 import type { MainTabParamList, RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
-import {
-  getRoutineSteps,
-  ROUTINE_STREAK_DAYS,
-} from '@/screens/routine/routineStepContent';
+import { useLocalizedRoutineSteps } from '@/i18n/content/useLocalizedRoutine';
+import { useActivityStats } from '@/hooks/useActivityStats';
+import { syncRoutineActivity } from '@/utils/syncRoutineActivity';
 import { useRoutineStore } from '@/store/routineStore';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { layout, radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Routine'>,
   NativeStackNavigationProp<RootStackParamList>
 >;
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scroll: {
+    paddingHorizontal: layout.screenPaddingX,
+    gap: layout.sectionGap,
+  },
+  streakCard: {
+    backgroundColor: colors.surfaceElevated,
+    borderRadius: layout.listCardRadius,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.hairline,
+    ...shadows.md,
+  },
+  streakRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  streakEmoji: {
+    fontSize: 20,
+  },
+  streakTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  streakPct: {
+    fontFamily: typography.score.fontFamily,
+    fontSize: 13,
+    color: colors.ctaGradientStart,
+  },
+  progressTrack: {
+    height: 6,
+    backgroundColor: colors.ctaTint,
+    borderRadius: radius.full,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: radius.full,
+  },
+  completeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surfaceAlt,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.ctaTint,
+  },
+  completeText: {
+    ...typography.body,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  stepList: {
+    gap: spacing.md,
+  },
+  editBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.ctaGradientMid,
+    borderRadius: radius.full,
+    marginTop: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  editLabel: {
+    ...typography.h3,
+    color: colors.ctaGradientStart,
+  },
+});
+}
+
 export function RoutineScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const [period, setPeriod] = useState<RoutinePeriod>('morning');
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const storedRoutine = useRoutineStore((s) => s.routine);
+  const { streakDays } = useActivityStats();
 
-  const steps = getRoutineSteps(period, storedRoutine);
+  const steps = useLocalizedRoutineSteps(period, storedRoutine);
   const doneCount = steps.filter((s) => completed.has(s.id)).length;
   const progressPct = steps.length ? Math.round((doneCount / steps.length) * 100) : 0;
   const allDone = doneCount === steps.length && steps.length > 0;
@@ -71,65 +161,63 @@ export function RoutineScreen() {
   const handleToggle = async (stepId: string) => {
     await toggleStepCompleted(period, stepId);
     await reloadCompleted();
+    await syncRoutineActivity();
   };
 
   return (
     <View style={styles.root}>
-      <StatusBar style="dark" />
+      <StatusBar style={statusBarStyle} />
 
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <ScreenBackButton />
-        <Text style={styles.headerTitle}>{t('common.brand')}</Text>
-        <Pressable
-          style={styles.bellBtn}
-          accessibilityLabel={t('common.notifications')}
-          onPress={() => Alert.alert(t('common.notifications'), t('common.notificationsSoon'))}
-        >
-          <MaterialCommunityIcons name="bell-outline" size={24} color={colors.textSecondary} />
-        </Pressable>
-      </View>
+      <TabScreenHeader
+        topInset={insets.top + spacing.sm}
+        title={t('tabs.routine')}
+        right={
+          <Pressable
+            accessibilityLabel={t('common.notifications')}
+            onPress={() => navigation.navigate('Notifications')}
+          >
+            <MaterialCommunityIcons name="bell-outline" size={24} color={colors.textSecondary} />
+          </Pressable>
+        }
+      />
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.segment}>
-          <Pressable
-            style={[styles.segmentBtn, period === 'morning' && styles.segmentBtnActive]}
-            onPress={() => setPeriod('morning')}
-          >
-            <Text style={[styles.segmentLabel, period === 'morning' && styles.segmentLabelActive]}>
-              {t('routine.morning')}
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.segmentBtn, period === 'evening' && styles.segmentBtnActive]}
-            onPress={() => setPeriod('evening')}
-          >
-            <Text style={[styles.segmentLabel, period === 'evening' && styles.segmentLabelActive]}>
-              {t('routine.evening')}
-            </Text>
-          </Pressable>
-        </View>
+        <SegmentedControl
+          options={[
+            { id: 'morning' as const, label: t('routine.morning') },
+            { id: 'evening' as const, label: t('routine.evening') },
+          ]}
+          value={period}
+          onChange={setPeriod}
+        />
 
         <View style={styles.streakCard}>
           <View style={styles.streakRow}>
             <Text style={styles.streakEmoji}>🔥</Text>
             <Text style={styles.streakTitle}>
-              {t('routine.streakDays', { days: ROUTINE_STREAK_DAYS })}
+              {t('routine.streakDays', { days: streakDays })}
             </Text>
             <Text style={styles.streakPct}>
               {t('routine.percentComplete', { percent: progressPct })}
             </Text>
           </View>
           <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
+            <LinearGradient
+              colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+              locations={[0, 0.48, 1]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[styles.progressFill, { width: `${progressPct}%` }]}
+            />
           </View>
         </View>
 
         {allDone ? (
           <View style={styles.completeBanner}>
-            <MaterialCommunityIcons name="party-popper" size={22} color={colors.primary} />
+            <MaterialCommunityIcons name="party-popper" size={22} color={colors.ctaGradientStart} />
             <Text style={styles.completeText}>
               {t('routine.completeBanner', {
                 period: period === 'morning' ? t('routine.morning') : t('routine.evening'),
@@ -153,7 +241,7 @@ export function RoutineScreen() {
 
         <Pressable
           style={styles.editBtn}
-          onPress={() => Alert.alert(t('routine.editRoutine'), t('routine.editRoutineSoon'))}
+          onPress={() => navigation.navigate('EditRoutine')}
         >
           <MaterialCommunityIcons name="pencil-outline" size={20} color={colors.primary} />
           <Text style={styles.editLabel}>{t('routine.editRoutine')}</Text>
@@ -162,132 +250,3 @@ export function RoutineScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.background,
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: colors.primary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  bellBtn: {
-    width: touchTarget,
-    height: touchTarget,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-  },
-  scroll: {
-    paddingHorizontal: spacing.base,
-    gap: spacing.xl,
-  },
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: '#F1F3FF',
-    borderRadius: radius.lg,
-    padding: spacing.xs,
-  },
-  segmentBtn: {
-    flex: 1,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.md,
-    alignItems: 'center',
-  },
-  segmentBtnActive: {
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  segmentLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-  segmentLabelActive: {
-    color: colors.primary,
-    fontFamily: typography.h3.fontFamily,
-  },
-  streakCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    ...shadows.sm,
-  },
-  streakRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  streakEmoji: {
-    fontSize: 20,
-  },
-  streakTitle: {
-    ...typography.h3,
-    color: colors.primaryDark,
-    flex: 1,
-  },
-  streakPct: {
-    fontFamily: typography.score.fontFamily,
-    fontSize: 13,
-    color: colors.primary,
-  },
-  progressTrack: {
-    height: 6,
-    backgroundColor: colors.primaryPale,
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 3,
-  },
-  completeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    backgroundColor: colors.surfaceAlt,
-    padding: spacing.lg,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.primaryPale,
-  },
-  completeText: {
-    ...typography.body,
-    color: colors.primaryDark,
-    flex: 1,
-  },
-  stepList: {
-    gap: spacing.md,
-  },
-  editBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.primary,
-    borderRadius: radius.lg,
-    marginTop: spacing.sm,
-    marginBottom: spacing.xl,
-  },
-  editLabel: {
-    ...typography.h3,
-    color: colors.primary,
-  },
-});

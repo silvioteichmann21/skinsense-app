@@ -6,16 +6,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FaceScanGuide } from '@/components/scan/FaceScanGuide';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { getPosePhase } from '@/components/scan/facePoseScan';
 import { ScreenBackButton } from '@/components/ui/ScreenBackButton';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useSkinAnalysis } from '@/hooks/useSkinAnalysis';
@@ -26,7 +23,17 @@ import {
   ANALYZING_STAGES,
 } from '@/screens/scan/analyzingContent';
 import { scanErrorHintKey, scanErrorTitleKey } from '@/screens/scan/scanAnalysisErrors';
-import { colors, radius, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import {
+  fontFamilies,
+  radius,
+  spacing,
+  touchTarget,
+  typography,
+  useAnalyzingFrameSize,
+  useThemedStyles,
+  useAppTheme,
+} from '@/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Analyzing'>;
 type Route = RouteProp<RootStackParamList, 'Analyzing'>;
@@ -55,140 +62,8 @@ function stageForProgress(progress: number, t: ReturnType<typeof useTranslation>
   return t(STAGE_KEYS[index] ?? 'scan.stageReady');
 }
 
-export function AnalyzingScreen() {
-  const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
-  const insets = useSafeAreaInsets();
-  const { width: screenWidth } = useWindowDimensions();
-  const { t } = useTranslation();
-
-  const imageUri = route.params?.imageUri ?? ANALYZING_PLACEHOLDER_IMAGE;
-  const { progress, error, result, retry } = useSkinAnalysis(imageUri);
-
-  const [factIndex, setFactIndex] = useState(0);
-
-  const frameWidth = Math.min(screenWidth - spacing.base * 2, 320);
-  const frameHeight = frameWidth * 1.25;
-
-  const scanY = useSharedValue(0);
-
-  useEffect(() => {
-    scanY.value = withRepeat(
-      withTiming(1, { duration: 3000, easing: Easing.inOut(Easing.ease) }),
-      -1,
-      false,
-    );
-  }, [scanY]);
-
-  useEffect(() => {
-    if (result) {
-      navigation.replace('SkinReport', { result });
-    }
-  }, [result, navigation]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setFactIndex((i) => (i + 1) % FACT_KEYS.length);
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const scanLineStyle = useAnimatedStyle(() => ({
-    top: `${scanY.value * 100}%`,
-  }));
-
-  const stageLabel = useMemo(() => stageForProgress(progress, t), [progress, t]);
-
-  if (error) {
-    return (
-      <View style={styles.root}>
-        <StatusBar style="light" />
-        <View style={[styles.header, { paddingTop: insets.top }]}>
-          <ScreenBackButton variant="inverse" style={styles.closeBtn} />
-          <Text style={styles.headerTitle}>{t('scan.analyzing')}</Text>
-          <View style={styles.headerSpacer} />
-        </View>
-        <View style={[styles.errorBody, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
-          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.primaryPale} />
-          <Text style={styles.errorTitle}>{t(scanErrorTitleKey(error))}</Text>
-          <Text style={styles.errorHint}>{t(scanErrorHintKey(error))}</Text>
-          <Pressable style={styles.retryBtn} onPress={retry}>
-            <Text style={styles.retryLabel}>{t('scan.retryAnalysis')}</Text>
-          </Pressable>
-          <Pressable
-            style={styles.retakeBtn}
-            onPress={() => navigation.replace('Camera')}
-          >
-            <Text style={styles.retakeLabel}>{t('scan.retakePhoto')}</Text>
-          </Pressable>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.root}>
-      <StatusBar style="light" />
-
-      <View style={StyleSheet.absoluteFill}>
-        <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
-        <View style={styles.dimOverlay} />
-      </View>
-
-      <View style={[styles.header, { paddingTop: insets.top }]}>
-        <ScreenBackButton variant="inverse" style={styles.closeBtn} />
-        <Text style={styles.headerTitle}>{t('scan.analyzing')}</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      <View style={styles.content}>
-        <View
-          style={[
-            styles.frame,
-            {
-              width: frameWidth,
-              height: frameHeight,
-            },
-          ]}
-        >
-          <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <Animated.View style={[styles.scanLine, scanLineStyle]} />
-          <CornerAccent style={styles.cornerTL} />
-          <CornerAccent style={styles.cornerTR} />
-          <CornerAccent style={styles.cornerBL} />
-          <CornerAccent style={styles.cornerBR} />
-        </View>
-
-        <View style={[styles.progressBlock, { width: frameWidth }]}>
-          <View style={styles.progressRow}>
-            <Text style={styles.stageLabel}>{stageLabel}</Text>
-            <Text style={styles.percentLabel}>{t('common.percent', { percent: Math.floor(progress) })}</Text>
-          </View>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress}%` }]} />
-          </View>
-        </View>
-      </View>
-
-      <View style={[styles.factWrap, { paddingBottom: Math.max(insets.bottom, spacing.xl) + spacing.lg }]}>
-        <View style={styles.factCard}>
-          <View style={styles.factHeader}>
-            <MaterialCommunityIcons name="lightbulb-outline" size={18} color={colors.primaryPale} />
-            <Text style={styles.factBadge}>{t('scan.skinInsight')}</Text>
-          </View>
-          <Text style={styles.factText}>&ldquo;{t(FACT_KEYS[factIndex])}&rdquo;</Text>
-        </View>
-      </View>
-    </View>
-  );
-}
-
-function CornerAccent({ style }: { style: object }) {
-  return <View style={[styles.corner, style]} />;
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: '#000',
@@ -217,10 +92,11 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h2,
-    color: colors.textInverse,
+    color: colors.onPrimaryContainer,
     flex: 1,
     textAlign: 'center',
     marginRight: 40,
+    letterSpacing: -0.3,
   },
   headerSpacer: {
     width: 0,
@@ -231,58 +107,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: spacing.base,
   },
-  frame: {
-    borderRadius: 32,
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: colors.primaryPale,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
-    shadowRadius: 24,
-    elevation: 12,
+  scanFrame: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  scanLine: {
+  scanPhoto: {
     position: 'absolute',
-    left: 0,
-    right: 0,
-    height: 2,
-    backgroundColor: colors.primaryLight,
-    shadowColor: colors.primaryLight,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.9,
-    shadowRadius: 8,
-    zIndex: 2,
-  },
-  corner: {
-    position: 'absolute',
-    width: 24,
-    height: 24,
-    borderColor: 'rgba(255,255,255,0.6)',
-  },
-  cornerTL: {
-    top: spacing.base,
-    left: spacing.base,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-  },
-  cornerTR: {
-    top: spacing.base,
-    right: spacing.base,
-    borderTopWidth: 2,
-    borderRightWidth: 2,
-  },
-  cornerBL: {
-    bottom: spacing.base,
-    left: spacing.base,
-    borderBottomWidth: 2,
-    borderLeftWidth: 2,
-  },
-  cornerBR: {
-    bottom: spacing.base,
-    right: spacing.base,
-    borderBottomWidth: 2,
-    borderRightWidth: 2,
+    opacity: 0.55,
   },
   progressBlock: {
     marginTop: spacing.xxl,
@@ -295,26 +126,28 @@ const styles = StyleSheet.create({
   },
   stageLabel: {
     ...typography.label,
-    color: colors.textInverse,
+    color: colors.onPrimaryContainer,
     flex: 1,
     paddingRight: spacing.sm,
+    letterSpacing: 1.4,
   },
   percentLabel: {
-    fontFamily: typography.body.fontFamily,
-    fontSize: 13,
+    fontFamily: fontFamilies.mono,
+    fontSize: 14,
     lineHeight: 20,
-    color: colors.primaryPale,
+    color: colors.ctaGradientMid,
   },
   progressTrack: {
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 3,
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: radius.full,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: colors.primaryPale,
-    borderRadius: 3,
+    borderRadius: radius.full,
   },
   factWrap: {
     position: 'absolute',
@@ -324,30 +157,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.base,
   },
   factCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: radius.lg,
+    borderRadius: radius.xl,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    padding: spacing.xl,
+    borderColor: colors.glassBorder,
+    overflow: 'hidden',
     maxWidth: 360,
     alignSelf: 'center',
+  },
+  factCardInner: {
+    padding: spacing.xl,
+    backgroundColor: colors.glassFill,
   },
   factHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
-    marginBottom: spacing.sm,
+    marginBottom: spacing.md,
   },
   factBadge: {
-    ...typography.label,
-    color: colors.primaryPale,
+    fontFamily: fontFamilies.mono,
+    fontSize: 11,
+    letterSpacing: 1.4,
+    color: colors.primaryLight,
   },
   factText: {
     ...typography.bodyLg,
-    color: colors.textInverse,
+    color: colors.onPrimaryContainer,
     textAlign: 'center',
-    fontStyle: 'italic',
+    lineHeight: 26,
   },
   errorBody: {
     flex: 1,
@@ -368,16 +206,11 @@ const styles = StyleSheet.create({
     marginBottom: spacing.lg,
   },
   retryBtn: {
-    backgroundColor: colors.primaryPale,
-    paddingHorizontal: spacing.xxl,
-    paddingVertical: spacing.md,
-    borderRadius: radius.md,
     minWidth: 200,
-    alignItems: 'center',
   },
   retryLabel: {
     ...typography.h3,
-    color: colors.primaryDark,
+    color: colors.textInverse,
   },
   retakeBtn: {
     paddingVertical: spacing.sm,
@@ -387,3 +220,137 @@ const styles = StyleSheet.create({
     color: colors.primaryPale,
   },
 });
+}
+
+export function AnalyzingScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const frame = useAnalyzingFrameSize();
+
+  const imageUri = route.params?.imageUri ?? ANALYZING_PLACEHOLDER_IMAGE;
+  const { progress, error, result, retry } = useSkinAnalysis(imageUri);
+
+  const [factIndex, setFactIndex] = useState(0);
+
+  useEffect(() => {
+    if (result) {
+      navigation.replace('SkinReport', { result });
+    }
+  }, [result, navigation]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFactIndex((i) => (i + 1) % FACT_KEYS.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const stageLabel = useMemo(() => {
+    if (progress < 100) {
+      return t(getPosePhase(progress).labelKey);
+    }
+    return stageForProgress(progress, t);
+  }, [progress, t]);
+
+  if (error) {
+    return (
+      <View style={styles.root}>
+        <StatusBar style={statusBarStyle} />
+        <View style={[styles.header, { paddingTop: insets.top }]}>
+          <ScreenBackButton variant="inverse" style={styles.closeBtn} />
+          <Text style={styles.headerTitle}>{t('scan.analyzing')}</Text>
+          <View style={styles.headerSpacer} />
+        </View>
+        <View style={[styles.errorBody, { paddingBottom: Math.max(insets.bottom, spacing.xl) }]}>
+          <MaterialCommunityIcons name="alert-circle-outline" size={48} color={colors.primaryPale} />
+          <Text style={styles.errorTitle}>{t(scanErrorTitleKey(error))}</Text>
+          <Text style={styles.errorHint}>{t(scanErrorHintKey(error))}</Text>
+          <GradientButton onPress={retry} style={styles.retryBtn}>
+            <Text style={styles.retryLabel}>{t('scan.retryAnalysis')}</Text>
+          </GradientButton>
+          <Pressable
+            style={styles.retakeBtn}
+            onPress={() => navigation.replace('Camera')}
+          >
+            <Text style={styles.retakeLabel}>{t('scan.retakePhoto')}</Text>
+          </Pressable>
+        </View>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style={statusBarStyle} />
+
+      <View style={StyleSheet.absoluteFill}>
+        <Image source={{ uri: imageUri }} style={StyleSheet.absoluteFill} contentFit="cover" />
+        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.dimOverlay} />
+      </View>
+
+      <View style={[styles.header, { paddingTop: insets.top }]}>
+        <ScreenBackButton variant="inverse" style={styles.closeBtn} />
+        <Text style={styles.headerTitle}>{t('scan.analyzing')}</Text>
+        <View style={styles.headerSpacer} />
+      </View>
+
+      <View style={styles.content}>
+        <View style={styles.scanFrame}>
+          <Image
+            source={{ uri: imageUri }}
+            style={[
+              styles.scanPhoto,
+              {
+                width: frame.width,
+                height: frame.height,
+                borderRadius: frame.height / 2,
+              },
+            ]}
+            contentFit="cover"
+          />
+          <FaceScanGuide
+            progress={progress}
+            width={frame.width}
+            height={frame.height}
+            showAiTag={false}
+          />
+        </View>
+
+        <View style={[styles.progressBlock, { width: frame.progressWidth }]}>
+          <View style={styles.progressRow}>
+            <Text style={styles.stageLabel}>{stageLabel}</Text>
+            <Text style={styles.percentLabel}>{t('common.percent', { percent: Math.floor(progress) })}</Text>
+          </View>
+          <View style={styles.progressTrack}>
+            <LinearGradient
+              colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+              locations={[0, 0.48, 1]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[styles.progressFill, { width: `${progress}%` }]}
+            />
+          </View>
+        </View>
+      </View>
+
+      <View style={[styles.factWrap, { paddingBottom: Math.max(insets.bottom, spacing.xl) + spacing.lg }]}>
+        <View style={styles.factCard}>
+          <BlurView intensity={56} tint="dark" style={styles.factCardInner}>
+            <View style={styles.factHeader}>
+              <MaterialCommunityIcons name="lightbulb-outline" size={18} color={colors.ctaGradientMid} />
+              <Text style={styles.factBadge}>{t('scan.skinInsight')}</Text>
+            </View>
+            <Text style={styles.factText}>{t(FACT_KEYS[factIndex])}</Text>
+          </BlurView>
+        </View>
+      </View>
+    </View>
+  );
+}
+

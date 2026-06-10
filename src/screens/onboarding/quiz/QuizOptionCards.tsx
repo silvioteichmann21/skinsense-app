@@ -3,7 +3,8 @@ import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-na
 
 import type { BentoOption, GridOption, ListOption } from '@/screens/onboarding/quiz/quizSteps';
 import { useTranslation } from '@/i18n/useTranslation';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 const GRID_GAP = spacing.md;
 const GRID_H_PAD = spacing.base;
@@ -16,7 +17,230 @@ type GridProps = {
   onToggle: (id: string) => void;
 };
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    columnGap: GRID_GAP,
+    rowGap: GRID_GAP,
+  },
+  gridCardBase: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+    borderRadius: radius.md,
+    padding: spacing.xl,
+  },
+  gridCardColumn: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: GRID_CARD_MIN_HEIGHT,
+  },
+  gridCardRow: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 88,
+  },
+  gridRowContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridCardSelected: {
+    backgroundColor: colors.ctaTint,
+    borderWidth: 2,
+    borderColor: colors.ctaGradientStart,
+  },
+  gridCardDisabled: {
+    opacity: 0.55,
+  },
+  gridCheck: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  gridIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.periodTrack,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: spacing.md,
+  },
+  gridIconWrapInline: {
+    marginBottom: 0,
+    marginRight: spacing.base,
+  },
+  gridIconWrapSelected: {
+    backgroundColor: colors.ctaTint,
+  },
+  gridLabel: {
+    ...typography.h3,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    width: '100%',
+  },
+  gridLabelInline: {
+    ...typography.h3,
+    color: colors.textSecondary,
+    textAlign: 'left',
+  },
+  gridLabelSelected: {
+    color: colors.ctaGradientEnd,
+  },
+  list: {
+    gap: spacing.base,
+  },
+  listCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+    borderRadius: radius.md,
+  },
+  listCardSelected: {
+    backgroundColor: colors.ctaTint,
+    borderWidth: 2,
+    borderColor: colors.ctaGradientStart,
+  },
+  listCheckBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+  },
+  listIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${colors.primaryPale}33`,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: spacing.base,
+  },
+  listIconWrapSelected: {
+    backgroundColor: colors.ctaGradientMid,
+  },
+  listText: {
+    flex: 1,
+    paddingRight: spacing.sm,
+  },
+  listTextWithIcon: {
+    paddingRight: spacing.md,
+  },
+  listTitle: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  listTitleSelected: {
+    color: colors.ctaGradientEnd,
+  },
+  listDesc: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  listDescSelected: {
+    color: colors.ctaGradientEnd,
+    opacity: 0.85,
+  },
+  radio: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#BFC9C1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioSelected: {
+    borderColor: colors.ctaGradientStart,
+    backgroundColor: colors.ctaGradientMid,
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.textInverse,
+  },
+  bentoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  bentoCard: {
+    width: '47%',
+    height: 144,
+    padding: spacing.base,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+    borderRadius: radius.md,
+    justifyContent: 'flex-end',
+  },
+  bentoCardSelected: {
+    backgroundColor: colors.ctaTint,
+    borderWidth: 2,
+    borderColor: colors.ctaGradientStart,
+  },
+  bentoCheck: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: colors.ctaGradientMid,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bentoIcon: {
+    position: 'absolute',
+    top: spacing.base,
+    left: spacing.base,
+  },
+  bentoLabel: {
+    ...typography.h3,
+    color: colors.textPrimary,
+  },
+  bentoLabelSelected: {
+    color: colors.onPrimaryPale,
+  },
+  helpCard: {
+    flexDirection: 'row',
+    gap: spacing.base,
+    marginTop: spacing.xxl,
+    padding: spacing.base,
+    backgroundColor: colors.surfaceMuted,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.borderMuted,
+  },
+  helpText: {
+    flex: 1,
+  },
+  helpTitle: {
+    fontFamily: typography.h3.fontFamily,
+    fontSize: 16,
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  helpBody: {
+    ...typography.body,
+    color: colors.textSecondary,
+  },
+});
+}
+
 export function ConcernGrid({ options, selected, maxSelect, onToggle }: GridProps) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { width: screenWidth } = useWindowDimensions();
   const columnWidth = (screenWidth - GRID_H_PAD * 2 - GRID_GAP) / 2;
 
@@ -57,7 +281,7 @@ export function ConcernGrid({ options, selected, maxSelect, onToggle }: GridProp
                   <MaterialCommunityIcons
                     name={opt.icon}
                     size={24}
-                    color={isSelected ? colors.primaryDark : colors.textSecondary}
+                    color={isSelected ? colors.onPrimaryPale : colors.textSecondary}
                   />
                 </View>
                 <Text
@@ -77,7 +301,7 @@ export function ConcernGrid({ options, selected, maxSelect, onToggle }: GridProp
                   <MaterialCommunityIcons
                     name={opt.icon}
                     size={24}
-                    color={isSelected ? colors.primaryDark : colors.textSecondary}
+                    color={isSelected ? colors.onPrimaryPale : colors.textSecondary}
                   />
                 </View>
                 <Text
@@ -105,6 +329,9 @@ type ListProps = {
 };
 
 export function QuizListOptions({ options, selected, onSelect, showIcon }: ListProps) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.list}>
       {options.map((opt) => {
@@ -158,6 +385,9 @@ type BentoProps = {
 };
 
 export function GoalBentoGrid({ options, selected, maxSelect, onToggle }: BentoProps) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.bentoGrid}>
       {options.map((opt) => {
@@ -197,6 +427,8 @@ export function GoalBentoGrid({ options, selected, maxSelect, onToggle }: BentoP
 }
 
 export function QuizHelpCard() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
 
   return (
@@ -209,222 +441,3 @@ export function QuizHelpCard() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    columnGap: GRID_GAP,
-    rowGap: GRID_GAP,
-  },
-  gridCardBase: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    borderRadius: radius.md,
-    padding: spacing.xl,
-  },
-  gridCardColumn: {
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: GRID_CARD_MIN_HEIGHT,
-  },
-  gridCardRow: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 88,
-  },
-  gridRowContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  gridCardSelected: {
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  gridCardDisabled: {
-    opacity: 0.55,
-  },
-  gridCheck: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  gridIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#E9EDFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  gridIconWrapInline: {
-    marginBottom: 0,
-    marginRight: spacing.base,
-  },
-  gridIconWrapSelected: {
-    backgroundColor: colors.primaryPale,
-  },
-  gridLabel: {
-    ...typography.h3,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    width: '100%',
-  },
-  gridLabelInline: {
-    ...typography.h3,
-    color: colors.textSecondary,
-    textAlign: 'left',
-  },
-  gridLabelSelected: {
-    color: colors.primaryDark,
-  },
-  list: {
-    gap: spacing.base,
-  },
-  listCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.lg,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    borderRadius: radius.md,
-  },
-  listCardSelected: {
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 2,
-    borderColor: colors.primary,
-  },
-  listCheckBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  listIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: `${colors.primaryPale}33`,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.base,
-  },
-  listIconWrapSelected: {
-    backgroundColor: colors.primary,
-  },
-  listText: {
-    flex: 1,
-    paddingRight: spacing.sm,
-  },
-  listTextWithIcon: {
-    paddingRight: spacing.md,
-  },
-  listTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
-  listTitleSelected: {
-    color: colors.primaryDark,
-  },
-  listDesc: {
-    ...typography.body,
-    color: colors.textSecondary,
-    marginTop: 2,
-  },
-  listDescSelected: {
-    color: colors.primaryDark,
-    opacity: 0.85,
-  },
-  radio: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#BFC9C1',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  radioSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
-  },
-  radioDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.textInverse,
-  },
-  bentoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.md,
-  },
-  bentoCard: {
-    width: '47%',
-    height: 144,
-    padding: spacing.base,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    borderRadius: radius.md,
-    justifyContent: 'flex-end',
-  },
-  bentoCardSelected: {
-    backgroundColor: colors.primaryPale,
-    borderWidth: 2,
-    borderColor: colors.primaryContainer,
-  },
-  bentoCheck: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  bentoIcon: {
-    position: 'absolute',
-    top: spacing.base,
-    left: spacing.base,
-  },
-  bentoLabel: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
-  bentoLabelSelected: {
-    color: colors.primaryDark,
-  },
-  helpCard: {
-    flexDirection: 'row',
-    gap: spacing.base,
-    marginTop: spacing.xxl,
-    padding: spacing.base,
-    backgroundColor: '#F1F3FF',
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-  },
-  helpText: {
-    flex: 1,
-  },
-  helpTitle: {
-    fontFamily: typography.h3.fontFamily,
-    fontSize: 16,
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  helpBody: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-});

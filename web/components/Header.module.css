@@ -2,8 +2,8 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
-  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.72);
   backdrop-filter: blur(20px);
 }
 
@@ -16,11 +16,19 @@
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--primary-dark);
+  color: var(--text);
   letter-spacing: -0.02em;
   justify-self: start;
+}
+
+.logoIcon {
+  border-radius: 0.45rem;
+  box-shadow: 0 0 16px var(--cta-glow);
 }
 
 .nav {
@@ -34,7 +42,7 @@
 }
 
 .nav a:hover {
-  color: var(--primary-dark);
+  color: var(--text);
 }
 
 @media (min-width: 768px) {
@@ -48,19 +56,19 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.65rem 1.35rem;
-  border-radius: var(--radius);
-  background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+  padding: 0.65rem 1.5rem;
+  border-radius: 999px;
+  background: var(--gradient-cta);
   color: #fff;
   font-size: 0.9375rem;
   font-weight: 600;
-  box-shadow: 0 4px 16px rgba(27, 67, 50, 0.22);
+  box-shadow: 0 4px 24px var(--cta-glow);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cta:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(27, 67, 50, 0.28);
+  box-shadow: 0 8px 32px rgba(232, 121, 249, 0.55);
 }
 
 @media (max-width: 767px) {

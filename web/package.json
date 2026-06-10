@@ -6,7 +6,8 @@
     "dev": "next dev --port 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "sync:images": "bash scripts/sync-landing-images.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.107.0",

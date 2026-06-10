@@ -3,6 +3,7 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
@@ -19,19 +20,16 @@ import { ConcernTrendRow } from '@/components/progress/ConcernTrendRow';
 import { MilestoneCard } from '@/components/progress/MilestoneCard';
 import { PhotoTimelineCard } from '@/components/progress/PhotoTimelineCard';
 import { ScoreTrendChart } from '@/components/progress/ScoreTrendChart';
-import { ScreenBackButton } from '@/components/ui/ScreenBackButton';
+import { Reveal } from '@/components/ui/Reveal';
+import { TabScreenHeader } from '@/components/ui/TabScreenHeader';
 import type { MainTabParamList, RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
 import { useScanPhotoTimeline } from '@/hooks/useScanPhotoTimeline';
-import {
-  CONCERN_TRENDS,
-  MILESTONES,
-  SCORE_BY_PERIOD,
-  WEEKLY_DIGEST,
-  type TrendPeriod,
-} from '@/screens/progress/progressMockData';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import { useProgressMetrics } from '@/hooks/useProgressMetrics';
+import type { TrendPeriod } from '@/screens/progress/progressMockData';
+import type { AppColors } from '@/theme/palettes';
+import { layout, radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 const PERIODS: { id: TrendPeriod; labelKey: TranslationKey }[] = [
   { id: '30d', labelKey: 'progress.period30' },
@@ -65,177 +63,14 @@ type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<RootStackParamList>
 >;
 
-export function ProgressScreen() {
-  const navigation = useNavigation<Nav>();
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-  const [period, setPeriod] = useState<TrendPeriod>('30d');
-  const trend = SCORE_BY_PERIOD[period];
-  const photoTimeline = useScanPhotoTimeline();
-
-  return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <ScreenBackButton />
-        <Text style={styles.headerTitle}>{t('progress.title')}</Text>
-        <View style={styles.avatar}>
-          <MaterialCommunityIcons name="account-circle" size={28} color={colors.primary} />
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: insets.bottom + 100 },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.digest}>
-          <MaterialCommunityIcons
-            name="auto-fix"
-            size={72}
-            color={colors.primaryPale}
-            style={styles.digestWatermark}
-          />
-          <View style={styles.digestContent}>
-            <View style={styles.digestLabelRow}>
-              <MaterialCommunityIcons name="brain" size={16} color={colors.primaryPale} />
-              <Text style={styles.digestLabel}>{t('progress.weeklyDigest')}</Text>
-            </View>
-            <Text style={styles.digestBody}>{t('progress.digestBody')}</Text>
-            <View style={styles.digestBarRow}>
-              <View style={styles.digestTrack}>
-                <View
-                  style={[
-                    styles.digestFill,
-                    { width: `${WEEKLY_DIGEST.adherencePercent}%` },
-                  ]}
-                />
-              </View>
-              <Text style={styles.digestDelta}>{t('progress.digestDelta')}</Text>
-            </View>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>{t('progress.scoreTrend')}</Text>
-            <View style={styles.periodToggle}>
-              {PERIODS.map((p) => (
-                <Pressable
-                  key={p.id}
-                  onPress={() => setPeriod(p.id)}
-                  style={[styles.periodBtn, period === p.id && styles.periodBtnActive]}
-                >
-                  <Text style={[styles.periodText, period === p.id && styles.periodTextActive]}>
-                    {t(p.labelKey)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-          <ScoreTrendChart current={trend.current} points={trend.points} />
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('progress.concernTrends')}</Text>
-          <View style={styles.concernList}>
-            {CONCERN_TRENDS.map((c) => (
-              <ConcernTrendRow
-                key={c.id}
-                concern={{
-                  ...c,
-                  name: t(CONCERN_NAME_KEYS[c.id] ?? 'progress.concerns.hydration'),
-                  status: t(STATUS_KEYS[c.status] ?? 'progress.status.improving'),
-                }}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHead}>
-            <Text style={styles.sectionTitle}>{t('progress.photoTimeline')}</Text>
-            <Pressable
-              style={styles.viewAll}
-              onPress={() => navigation.navigate('Compare')}
-            >
-              <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={16} color={colors.primary} />
-            </Pressable>
-          </View>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timelineScroll}
-          >
-            {photoTimeline.map((photo) => (
-              <PhotoTimelineCard key={photo.id} photo={photo} />
-            ))}
-          </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>{t('progress.milestonesTitle')}</Text>
-          <View style={styles.milestoneGrid}>
-            {MILESTONES.map((m) => (
-              <MilestoneCard
-                key={m.id}
-                milestone={{
-                  ...m,
-                  label: MILESTONE_LABEL_KEYS[m.id] ? t(MILESTONE_LABEL_KEYS[m.id]) : m.label,
-                }}
-                onPress={() => {
-                  if (!m.unlocked) {
-                    Alert.alert(
-                      MILESTONE_LABEL_KEYS[m.id] ? t(MILESTONE_LABEL_KEYS[m.id]) : m.label,
-                      t('progress.milestoneLocked'),
-                    );
-                  }
-                }}
-              />
-            ))}
-          </View>
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  headerTitle: {
-    ...typography.h2,
-    color: colors.primary,
-    letterSpacing: -0.3,
-  },
-  avatar: {
-    width: touchTarget,
-    height: touchTarget,
-    borderRadius: radius.full,
-    backgroundColor: colors.primaryPale,
-    borderWidth: 1,
-    borderColor: colors.primaryPale,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
   scroll: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: layout.screenPaddingX,
     paddingTop: spacing.lg,
     gap: spacing.xxl,
   },
@@ -263,12 +98,12 @@ const styles = StyleSheet.create({
   },
   digestLabel: {
     ...typography.label,
-    color: colors.primaryPale,
+    color: colors.onPrimaryContainerMuted,
     letterSpacing: 2,
   },
   digestBody: {
     ...typography.bodyLg,
-    color: colors.primaryPale,
+    color: colors.onPrimaryContainer,
     marginBottom: spacing.lg,
   },
   digestBold: {
@@ -283,18 +118,17 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 8,
     borderRadius: radius.full,
-    backgroundColor: 'rgba(27, 67, 50, 0.35)',
+    backgroundColor: colors.primaryContainerTrack,
     overflow: 'hidden',
   },
   digestFill: {
     height: '100%',
-    backgroundColor: '#B1F0CE',
     borderRadius: radius.full,
   },
   digestDelta: {
     fontFamily: typography.score.fontFamily,
     fontSize: 13,
-    color: colors.primaryPale,
+    color: colors.onPrimaryContainerMuted,
   },
   section: {
     gap: spacing.lg,
@@ -310,18 +144,18 @@ const styles = StyleSheet.create({
   },
   periodToggle: {
     flexDirection: 'row',
-    backgroundColor: '#E9EDFF',
-    borderRadius: radius.md,
-    padding: 4,
+    backgroundColor: colors.periodTrack,
+    borderRadius: radius.full,
+    padding: 3,
     gap: 2,
   },
   periodBtn: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    borderRadius: radius.sm,
+    borderRadius: radius.full,
+    overflow: 'hidden',
   },
   periodBtnActive: {
-    backgroundColor: colors.surface,
     ...shadows.sm,
   },
   periodText: {
@@ -331,7 +165,8 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   periodTextActive: {
-    color: colors.primary,
+    color: colors.textInverse,
+    fontFamily: typography.h3.fontFamily,
   },
   concernList: {
     gap: spacing.md,
@@ -356,4 +191,174 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     justifyContent: 'space-between',
   },
+  emptyHint: {
+    ...typography.body,
+    color: colors.textSecondary,
+    paddingVertical: spacing.lg,
+  },
 });
+}
+
+export function ProgressScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
+  const navigation = useNavigation<Nav>();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const [period, setPeriod] = useState<TrendPeriod>('30d');
+  const { hasScans, scoreTrend, concernTrends, milestones, weeklyDigest } =
+    useProgressMetrics(period);
+  const photoTimeline = useScanPhotoTimeline();
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style={statusBarStyle} />
+
+      <TabScreenHeader topInset={insets.top + spacing.sm} title={t('progress.title')} />
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: insets.bottom + 100 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Reveal index={0} style={styles.digest}>
+          <MaterialCommunityIcons
+            name="auto-fix"
+            size={72}
+            color={colors.onPrimaryContainerMuted}
+            style={styles.digestWatermark}
+          />
+          <View style={styles.digestContent}>
+            <View style={styles.digestLabelRow}>
+              <MaterialCommunityIcons name="brain" size={16} color={colors.onPrimaryContainerMuted} />
+              <Text style={styles.digestLabel}>{t('progress.weeklyDigest')}</Text>
+            </View>
+            <Text style={styles.digestBody}>{weeklyDigest.body}</Text>
+            <View style={styles.digestBarRow}>
+              <View style={styles.digestTrack}>
+                <LinearGradient
+                  colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+                  locations={[0, 0.48, 1]}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={[
+                    styles.digestFill,
+                    { width: `${weeklyDigest.adherencePercent}%` },
+                  ]}
+                />
+              </View>
+              <Text style={styles.digestDelta}>{weeklyDigest.deltaLabel}</Text>
+            </View>
+          </View>
+        </Reveal>
+
+        <Reveal index={1} style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>{t('progress.scoreTrend')}</Text>
+            <View style={styles.periodToggle}>
+              {PERIODS.map((p) => {
+                const active = period === p.id;
+                return (
+                  <Pressable
+                    key={p.id}
+                    onPress={() => setPeriod(p.id)}
+                    style={[styles.periodBtn, active && styles.periodBtnActive]}
+                  >
+                    {active ? (
+                      <LinearGradient
+                        colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+                        locations={[0, 0.48, 1]}
+                        start={{ x: 0, y: 0.5 }}
+                        end={{ x: 1, y: 0.5 }}
+                        style={{
+                          paddingHorizontal: spacing.md,
+                          paddingVertical: spacing.xs,
+                          borderRadius: radius.full,
+                        }}
+                      >
+                        <Text style={[styles.periodText, styles.periodTextActive]}>
+                          {t(p.labelKey)}
+                        </Text>
+                      </LinearGradient>
+                    ) : (
+                      <Text style={styles.periodText}>{t(p.labelKey)}</Text>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          {hasScans ? (
+            <ScoreTrendChart current={scoreTrend.current} points={scoreTrend.points} />
+          ) : (
+            <Text style={styles.emptyHint}>{t('progress.noScansBody')}</Text>
+          )}
+        </Reveal>
+
+        <Reveal index={2} style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('progress.concernTrends')}</Text>
+          <View style={styles.concernList}>
+            {concernTrends.map((c) => (
+              <ConcernTrendRow
+                key={c.id}
+                concern={{
+                  ...c,
+                  name: t(CONCERN_NAME_KEYS[c.id] ?? 'progress.concerns.hydration'),
+                  status: t(STATUS_KEYS[c.status] ?? 'progress.status.improving'),
+                }}
+              />
+            ))}
+          </View>
+        </Reveal>
+
+        <Reveal index={3} style={styles.section}>
+          <View style={styles.sectionHead}>
+            <Text style={styles.sectionTitle}>{t('progress.photoTimeline')}</Text>
+            <Pressable
+              style={styles.viewAll}
+              onPress={() => navigation.navigate('Compare')}
+            >
+              <Text style={styles.viewAllText}>{t('common.viewAll')}</Text>
+              <MaterialCommunityIcons name="chevron-right" size={16} color={colors.primary} />
+            </Pressable>
+          </View>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.timelineScroll}
+          >
+            {photoTimeline.map((photo) => (
+              <PhotoTimelineCard key={photo.id} photo={photo} />
+            ))}
+          </ScrollView>
+        </Reveal>
+
+        <Reveal index={4} style={styles.section}>
+          <Text style={styles.sectionTitle}>{t('progress.milestonesTitle')}</Text>
+          <View style={styles.milestoneGrid}>
+            {milestones.map((m) => (
+              <MilestoneCard
+                key={m.id}
+                milestone={{
+                  ...m,
+                  label: MILESTONE_LABEL_KEYS[m.id] ? t(MILESTONE_LABEL_KEYS[m.id]) : m.label,
+                }}
+                onPress={() => {
+                  if (!m.unlocked) {
+                    Alert.alert(
+                      MILESTONE_LABEL_KEYS[m.id] ? t(MILESTONE_LABEL_KEYS[m.id]) : m.label,
+                      t('progress.milestoneLocked'),
+                    );
+                  }
+                }}
+              />
+            ))}
+          </View>
+        </Reveal>
+      </ScrollView>
+    </View>
+  );
+}

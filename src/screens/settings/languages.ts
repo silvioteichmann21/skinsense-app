@@ -46,7 +46,22 @@ export function normalizeLanguageCode(code: string): LanguageCode | undefined {
   if (LANGUAGE_CODES.has(code)) {
     return code as LanguageCode;
   }
-  return LEGACY_CODE_MAP[code];
+
+  const legacy = LEGACY_CODE_MAP[code];
+  if (legacy) return legacy;
+
+  const lower = code.toLowerCase();
+  if (LANGUAGE_CODES.has(lower)) {
+    return lower as LanguageCode;
+  }
+
+  const base = lower.split(/[-_]/)[0];
+  if (base === 'zh') return 'zh-Hans';
+  if (base && LANGUAGE_CODES.has(base)) {
+    return base as LanguageCode;
+  }
+
+  return undefined;
 }
 
 export function languageByCode(code: string): AppLanguage | undefined {

@@ -1,8 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { AppLanguage } from '@/screens/settings/languages';
-import { colors, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useAppTheme, useThemedStyles } from '@/theme';
 
 type Props = {
   language: AppLanguage;
@@ -11,26 +13,8 @@ type Props = {
   isLast?: boolean;
 };
 
-export function LanguageOptionRow({ language, selected, onPress, isLast }: Props) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed, !isLast && styles.border]}
-    >
-      <View style={styles.copy}>
-        <Text style={styles.native}>{language.nativeLabel}</Text>
-        <Text style={styles.label}>{language.label}</Text>
-      </View>
-      <View style={[styles.radio, selected && styles.radioSelected]}>
-        {selected ? (
-          <MaterialCommunityIcons name="check" size={16} color={colors.textInverse} />
-        ) : null}
-      </View>
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -61,15 +45,47 @@ const styles = StyleSheet.create({
   radio: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: radius.full,
     borderWidth: 2,
     borderColor: colors.borderMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'transparent',
+    overflow: 'hidden',
   },
-  radioSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary,
+  radioGradient: {
+    ...StyleSheet.absoluteFillObject,
+    borderRadius: radius.full,
   },
 });
+}
+
+export function LanguageOptionRow({
+ language, selected, onPress, isLast }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed, !isLast && styles.border]}
+    >
+      <View style={styles.copy}>
+        <Text style={styles.native}>{language.nativeLabel}</Text>
+        <Text style={styles.label}>{language.label}</Text>
+      </View>
+      <View style={[styles.radio, selected && { borderColor: 'transparent' }]}>
+        {selected ? (
+          <LinearGradient
+            colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+            locations={[0, 0.48, 1]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.radioGradient}
+          />
+        ) : null}
+        {selected ? (
+          <MaterialCommunityIcons name="check" size={16} color={colors.textInverse} />
+        ) : null}
+      </View>
+    </Pressable>
+  );
+}

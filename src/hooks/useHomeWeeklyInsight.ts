@@ -16,13 +16,13 @@ export function useHomeWeeklyInsight(): string {
   const latest = useSkinStore((s) => s.latestAnalysis);
 
   return useMemo(() => {
-    if (!latest) return t('home.insightBody');
+    if (!latest) return t('home.insightNoScan');
 
     const top = [...latest.concerns]
       .filter((c) => c.severity !== 'healthy')
       .sort((a, b) => b.barPercent - a.barPercent)[0];
 
-    if (!top) return t('home.insightBody');
+    if (!top) return t('home.insightEncourage');
 
     const key = INSIGHT_BY_CONCERN[top.id];
     if (key) return t(key);

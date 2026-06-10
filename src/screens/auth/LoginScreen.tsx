@@ -18,24 +18,84 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { AuthDecorBackground } from '@/components/auth/AuthDecorBackground';
+import { AuthFeedbackBanner } from '@/components/auth/AuthFeedbackBanner';
+import { AuthFormCard } from '@/components/auth/AuthFormCard';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { Divider } from '@/components/ui/Divider';
+import { PrimaryButton } from '@/components/ui/PrimaryButton';
+import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SocialAuthButton } from '@/components/ui/SocialAuthButton';
 import { TextField } from '@/components/ui/TextField';
-import { resolvePostAuthRoute } from '@/core/navigation/authRouting';
+import { navigateAfterSignIn } from '@/core/navigation/navigatePostAuth';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useAuthStore } from '@/store/authStore';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type LoginNav = NativeStackNavigationProp<RootStackParamList, 'Login'>;
 type LoginRoute = RouteProp<RootStackParamList, 'Login'>;
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  flex: {
+    flex: 1,
+  },
+  scroll: {
+    flexGrow: 1,
+    paddingHorizontal: spacing.base,
+    justifyContent: 'center',
+  },
+  card: {
+    gap: spacing.lg,
+  },
+  forgotWrap: {
+    alignSelf: 'flex-end',
+    marginTop: -spacing.sm,
+  },
+  forgot: {
+    ...typography.body,
+    color: colors.primary,
+    fontFamily: typography.h3.fontFamily,
+  },
+  formError: {
+    ...typography.caption,
+    color: colors.error,
+    textAlign: 'center',
+  },
+  signInWrap: {
+    marginTop: spacing.sm,
+  },
+  dividerWrap: {
+    marginVertical: spacing.sm,
+  },
+  socialGap: {
+    gap: spacing.base,
+  },
+  footer: {
+    ...typography.body,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.xl,
+  },
+  footerLink: {
+    color: colors.primary,
+    fontFamily: typography.h3.fontFamily,
+  },
+});
+}
+
 export function LoginScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
   const navigation = useNavigation<LoginNav>();
   const route = useRoute<LoginRoute>();
   const insets = useSafeAreaInsets();
@@ -52,6 +112,10 @@ export function LoginScreen() {
   const signIn = useAuthStore((s) => s.signIn);
   const resetPassword = useAuthStore((s) => s.resetPassword);
   const isLoading = useAuthStore((s) => s.isLoading);
+  const [authFeedback, setAuthFeedback] = useState<{
+    variant: 'success' | 'error';
+    message: string;
+  } | null>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
 
@@ -85,14 +149,21 @@ export function LoginScreen() {
     if (!validate()) return;
 
     setFormError(null);
+    setAuthFeedback(null);
     const { errorKey } = await signIn(email, password);
     if (errorKey) {
-      setFormError(t(errorKey));
+      const message =
+        errorKey === 'auth.networkError'
+          ? `${t('auth.networkError')}\n\n${t('auth.networkErrorDetail')}`
+          : t(errorKey);
+      setFormError(message);
+      setAuthFeedback({ variant: 'error', message });
+      Alert.alert(t('auth.signInFailedTitle'), message);
       return;
     }
 
-    const postAuth = await resolvePostAuthRoute();
-    navigation.replace(postAuth.name);
+    setAuthFeedback({ variant: 'success', message: t('auth.signInSuccessMessage') });
+    void navigateAfterSignIn(navigation, useAuthStore.getState().profile);
   };
 
   const handleForgotPassword = async () => {
@@ -112,7 +183,7 @@ export function LoginScreen() {
   return (
     <View style={styles.root}>
       <AuthDecorBackground />
-      <StatusBar style="dark" />
+      <StatusBar style={statusBarStyle} />
 
       <ScreenHeader topInset={insets.top} />
 
@@ -134,12 +205,17 @@ export function LoginScreen() {
           />
 
           {accountCreatedBanner ? (
-            <View style={styles.successBanner}>
-              <Text style={styles.successBannerText}>{t('auth.accountCreatedBanner')}</Text>
-            </View>
+            <AuthFeedbackBanner
+              variant="success"
+              message={t('auth.accountCreatedBanner')}
+            />
           ) : null}
 
-          <View style={styles.card}>
+          {authFeedback ? (
+            <AuthFeedbackBanner variant={authFeedback.variant} message={authFeedback.message} />
+          ) : null}
+
+          <AuthFormCard style={styles.card}>
             <TextField
               ref={emailRef}
               label={t('auth.email')}
@@ -174,31 +250,23 @@ export function LoginScreen() {
 
             {formError ? <Text style={styles.formError}>{formError}</Text> : null}
 
-            <Pressable
-              onPress={handleSignIn}
-              disabled={isLoading}
-              style={({ pressed }) => [
-                styles.signInBtn,
-                pressed && styles.signInPressed,
-                isLoading && styles.signInDisabled,
-              ]}
-            >
+            <View style={styles.signInWrap}>
               {isLoading ? (
-                <ActivityIndicator color={colors.textInverse} />
+                <ActivityIndicator color={colors.primary} />
               ) : (
-                <Text style={styles.signInLabel}>{t('auth.signIn')}</Text>
+                <PrimaryButton label={t('auth.signIn')} variant="green" onPress={handleSignIn} />
               )}
-            </Pressable>
+            </View>
 
             <View style={styles.dividerWrap}>
               <Divider />
             </View>
 
             <View style={styles.socialGap}>
-              <SocialAuthButton provider="apple" onPress={() => {}} />
-              <SocialAuthButton provider="google" onPress={() => {}} />
+              <SocialAuthButton provider="apple" variant="outlined" onPress={() => {}} />
+              <SocialAuthButton provider="google" variant="outlined" onPress={() => {}} />
             </View>
-          </View>
+          </AuthFormCard>
 
           <Text style={styles.footer}>
             {t('auth.noAccount')}{' '}
@@ -211,96 +279,3 @@ export function LoginScreen() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  flex: {
-    flex: 1,
-  },
-  scroll: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.base,
-    justifyContent: 'center',
-  },
-  successBanner: {
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-    padding: spacing.md,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryPale,
-    borderWidth: 1,
-    borderColor: colors.primaryLight,
-  },
-  successBannerText: {
-    ...typography.body,
-    color: colors.primaryDark,
-    textAlign: 'center',
-  },
-  card: {
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.border,
-    padding: spacing.xl,
-    gap: spacing.lg,
-    ...shadows.sm,
-  },
-  forgotWrap: {
-    alignSelf: 'flex-end',
-    marginTop: -spacing.sm,
-  },
-  forgot: {
-    ...typography.body,
-    color: colors.primaryDark,
-    fontFamily: typography.h3.fontFamily,
-  },
-  formError: {
-    ...typography.caption,
-    color: colors.error,
-    textAlign: 'center',
-  },
-  signInBtn: {
-    height: touchTarget,
-    borderRadius: radius.md,
-    backgroundColor: colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: spacing.sm,
-  },
-  signInPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
-  },
-  signInDisabled: {
-    opacity: 0.7,
-  },
-  signInLabel: {
-    ...typography.bodyLg,
-    color: colors.textInverse,
-    fontFamily: typography.h3.fontFamily,
-  },
-  dividerWrap: {
-    marginVertical: spacing.sm,
-  },
-  socialGap: {
-    gap: spacing.base,
-  },
-  footer: {
-    ...typography.body,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: spacing.xl,
-  },
-  footerLink: {
-    color: colors.primary,
-    fontFamily: typography.h3.fontFamily,
-  },
-});

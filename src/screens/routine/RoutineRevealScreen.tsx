@@ -17,34 +17,19 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GradientButton } from '@/components/ui/GradientButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { setOnboardingComplete } from '@/core/storage/onboardingPreferences';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useLocalizedPersonalizedRoutine } from '@/i18n/content/useLocalizedRoutine';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { RoutineStep } from '@/types/routine';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, shadows, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'RoutineReveal'>;
 type Route = RouteProp<RootStackParamList, 'RoutineReveal'>;
 type RoutineTab = 'morning' | 'evening';
-
-const CONFETTI_COLORS = [
-  colors.primary,
-  colors.primaryLight,
-  colors.primaryPale,
-  colors.accent,
-  '#92F7C3',
-];
-
-const CONFETTI_PIECES = Array.from({ length: 36 }, (_, i) => ({
-  id: i,
-  leftPercent: 8 + ((i * 2.5) % 84),
-  color: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
-  size: 4 + (i % 3) * 2,
-  delay: (i % 8) * 40,
-  duration: 1500 + (i % 5) * 200,
-}));
 
 function ConfettiPiece({
   leftPercent,
@@ -53,6 +38,7 @@ function ConfettiPiece({
   delay,
   duration,
   round,
+  styles,
 }: {
   leftPercent: number;
   color: string;
@@ -60,6 +46,7 @@ function ConfettiPiece({
   delay: number;
   duration: number;
   round: boolean;
+  styles: { confettiPiece: object };
 }) {
   const progress = useSharedValue(0);
 
@@ -100,7 +87,27 @@ function ConfettiPiece({
 }
 
 function CelebrationConfetti() {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const [tick, setTick] = useState(0);
+
+  const confettiPieces = useMemo(() => {
+    const palette = [
+      colors.primary,
+      colors.primaryLight,
+      colors.primaryPale,
+      colors.accent,
+      '#92F7C3',
+    ];
+    return Array.from({ length: 36 }, (_, i) => ({
+      id: i,
+      leftPercent: 8 + ((i * 2.5) % 84),
+      color: palette[i % palette.length],
+      size: 4 + (i % 3) * 2,
+      delay: (i % 8) * 40,
+      duration: 1500 + (i % 5) * 200,
+    }));
+  }, [colors]);
 
   useEffect(() => {
     const id = setInterval(() => setTick((t) => t + 1), 2800);
@@ -109,7 +116,7 @@ function CelebrationConfetti() {
 
   return (
     <View style={styles.confettiLayer} pointerEvents="none">
-      {CONFETTI_PIECES.map((p) => (
+      {confettiPieces.map((p) => (
         <ConfettiPiece
           key={`${p.id}-${tick}`}
           leftPercent={p.leftPercent}
@@ -118,6 +125,7 @@ function CelebrationConfetti() {
           delay={p.delay}
           duration={p.duration}
           round={p.id % 2 === 0}
+          styles={styles}
         />
       ))}
     </View>
@@ -125,6 +133,9 @@ function CelebrationConfetti() {
 }
 
 function RoutineStepRow({ step }: { step: RoutineStep }) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
   return (
     <View style={styles.stepCard}>
       <View style={styles.stepIcon}>
@@ -146,6 +157,7 @@ function RoutineTabs({
   active: RoutineTab;
   onChange: (tab: RoutineTab) => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   const { t } = useTranslation();
 
   return (
@@ -170,87 +182,8 @@ function RoutineTabs({
   );
 }
 
-export function RoutineRevealScreen() {
-  const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-  const [tab, setTab] = useState<RoutineTab>('morning');
-
-  const routine = useLocalizedPersonalizedRoutine(route.params.result);
-
-  const steps = tab === 'morning' ? routine.morning : routine.evening;
-  const footerBottom = Math.max(insets.bottom, spacing.base);
-
-  const handleStart = async () => {
-    await setOnboardingComplete(true);
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Main' }],
-    });
-  };
-
-  return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-
-      <ScreenHeader
-        topInset={insets.top}
-        title={t('common.brand')}
-        style={styles.headerBar}
-        right={
-          <View style={styles.avatarWrap}>
-            <Image
-              source={{ uri: route.params.result.imageUri }}
-              style={styles.avatar}
-              contentFit="cover"
-            />
-          </View>
-        }
-      />
-
-      <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          { paddingBottom: touchTarget + footerBottom + spacing.xxxl },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.celebration}>
-          <CelebrationConfetti />
-          <View style={styles.blobTop} />
-          <View style={styles.blobBottom} />
-          <View style={styles.celebrationIcon}>
-            <MaterialCommunityIcons name="auto-fix" size={40} color={colors.primary} />
-          </View>
-        </View>
-
-        <Text style={styles.title}>{t('routine.revealTitle')}</Text>
-        <Text style={styles.subtitle}>{routine.subtitle}</Text>
-
-        <RoutineTabs active={tab} onChange={setTab} />
-
-        <View style={styles.stepList}>
-          {steps.map((step) => (
-            <RoutineStepRow key={step.id} step={step} />
-          ))}
-        </View>
-      </ScrollView>
-
-      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
-        <Pressable
-          onPress={handleStart}
-          style={({ pressed }) => [styles.cta, pressed && styles.ctaPressed]}
-        >
-          <Text style={styles.ctaLabel}>{t('routine.startMyRoutine')}</Text>
-        </Pressable>
-        <Text style={styles.editNote}>{t('routine.editAnytime')}</Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -338,7 +271,7 @@ const styles = StyleSheet.create({
   },
   tabs: {
     flexDirection: 'row',
-    backgroundColor: '#F1F3FF',
+    backgroundColor: colors.surfaceMuted,
     borderRadius: radius.full,
     padding: 4,
     marginBottom: spacing.xl,
@@ -417,17 +350,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.borderMuted,
   },
   cta: {
-    height: touchTarget,
-    backgroundColor: colors.primary,
-    borderRadius: radius.md,
-    alignItems: 'center',
-    justifyContent: 'center',
+    width: '100%',
     marginBottom: spacing.md,
-    ...shadows.sm,
-  },
-  ctaPressed: {
-    opacity: 0.92,
-    transform: [{ scale: 0.98 }],
   },
   ctaLabel: {
     ...typography.h3,
@@ -441,3 +365,84 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
 });
+}
+
+export function RoutineRevealScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle } = useAppTheme();
+
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const [tab, setTab] = useState<RoutineTab>('morning');
+
+  const routine = useLocalizedPersonalizedRoutine(route.params.result);
+
+  const steps = tab === 'morning' ? routine.morning : routine.evening;
+  const footerBottom = Math.max(insets.bottom, spacing.base);
+
+  const handleStart = async () => {
+    await setOnboardingComplete(true);
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'Main' }],
+    });
+  };
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style={statusBarStyle} />
+
+      <ScreenHeader
+        topInset={insets.top}
+        title={t('common.brand')}
+        style={styles.headerBar}
+        right={
+          <View style={styles.avatarWrap}>
+            <Image
+              source={{ uri: route.params.result.imageUri }}
+              style={styles.avatar}
+              contentFit="cover"
+            />
+          </View>
+        }
+      />
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingBottom: touchTarget + footerBottom + spacing.xxxl },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.celebration}>
+          <CelebrationConfetti />
+          <View style={styles.blobTop} />
+          <View style={styles.blobBottom} />
+          <View style={styles.celebrationIcon}>
+            <MaterialCommunityIcons name="auto-fix" size={40} color={colors.primary} />
+          </View>
+        </View>
+
+        <Text style={styles.title}>{t('routine.revealTitle')}</Text>
+        <Text style={styles.subtitle}>{routine.subtitle}</Text>
+
+        <RoutineTabs active={tab} onChange={setTab} />
+
+        <View style={styles.stepList}>
+          {steps.map((step) => (
+            <RoutineStepRow key={step.id} step={step} />
+          ))}
+        </View>
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+        <GradientButton onPress={handleStart} style={styles.cta}>
+          <Text style={styles.ctaLabel}>{t('routine.startMyRoutine')}</Text>
+        </GradientButton>
+        <Text style={styles.editNote}>{t('routine.editAnytime')}</Text>
+      </View>
+    </View>
+  );
+}

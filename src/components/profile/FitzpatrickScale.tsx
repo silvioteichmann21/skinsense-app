@@ -2,57 +2,19 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { FITZPATRICK_TONES } from '@/screens/profile/skinProfileMockData';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Props = {
-  activeType: number;
-  label: string;
-  description: string;
+  activeType: number | null;
+  label: string | null;
+  description: string | null;
+  unavailableLabel?: string;
+  unavailableDescription?: string;
 };
 
-export function FitzpatrickScale({ activeType, label, description }: Props) {
-  return (
-    <View style={styles.wrap}>
-      <View style={styles.scale}>
-        {FITZPATRICK_TONES.map((tone) => {
-          const active = tone.type === activeType;
-          return (
-            <View key={tone.type} style={styles.toneCol}>
-              {active ? (
-                <MaterialCommunityIcons
-                  name="menu-down"
-                  size={18}
-                  color={colors.primary}
-                  style={styles.arrow}
-                />
-              ) : (
-                <View style={styles.arrowSpacer} />
-              )}
-              <View
-                style={[
-                  styles.tone,
-                  { backgroundColor: tone.color, height: active ? 48 : 32 },
-                  active && styles.toneActive,
-                ]}
-              >
-                <Text style={[styles.toneNum, { color: tone.labelColor }]}>{tone.type}</Text>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-      <View style={styles.meta}>
-        <View style={styles.metaText}>
-          <Text style={styles.typeLabel}>{label}</Text>
-          <Text style={styles.typeDesc}>{description}</Text>
-        </View>
-        <MaterialCommunityIcons name="information-outline" size={22} color={colors.textSecondary} />
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: {
     gap: spacing.lg,
   },
@@ -108,4 +70,70 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     maxWidth: 240,
   },
+  unavailable: {
+    ...typography.body,
+    color: colors.textSecondary,
+    lineHeight: 22,
+  },
 });
+}
+
+export function FitzpatrickScale({
+  activeType,
+  label,
+  description,
+  unavailableLabel,
+  unavailableDescription,
+}: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+
+  if (activeType === null || !label) {
+    return (
+      <View style={styles.wrap}>
+        <Text style={styles.typeLabel}>{unavailableLabel}</Text>
+        <Text style={styles.unavailable}>{unavailableDescription}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.wrap}>
+      <View style={styles.scale}>
+        {FITZPATRICK_TONES.map((tone) => {
+          const active = tone.type === activeType;
+          return (
+            <View key={tone.type} style={styles.toneCol}>
+              {active ? (
+                <MaterialCommunityIcons
+                  name="menu-down"
+                  size={18}
+                  color={colors.primary}
+                  style={styles.arrow}
+                />
+              ) : (
+                <View style={styles.arrowSpacer} />
+              )}
+              <View
+                style={[
+                  styles.tone,
+                  { backgroundColor: tone.color, height: active ? 48 : 32 },
+                  active && styles.toneActive,
+                ]}
+              >
+                <Text style={[styles.toneNum, { color: tone.labelColor }]}>{tone.type}</Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+      <View style={styles.meta}>
+        <View style={styles.metaText}>
+          <Text style={styles.typeLabel}>{label}</Text>
+          <Text style={styles.typeDesc}>{description}</Text>
+        </View>
+        <MaterialCommunityIcons name="information-outline" size={22} color={colors.textSecondary} />
+      </View>
+    </View>
+  );
+}

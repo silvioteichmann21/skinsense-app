@@ -1,9 +1,8 @@
 import { isApiConfigured } from '@/config/env';
 import { apiPost } from '@/services/api/client';
 import { analyzeSkinLocally } from '@/services/ai/skinAnalyzer';
-import { mockPersistScan } from '@/services/api/mockScanApi';
 import type { SkinAnalysisResult } from '@/types/skinAnalysis';
-import type { ScanPersistPayload, StoredScanRecord } from '@/types/scanPipeline';
+import type { AngleImageUris, ScanPersistPayload, StoredScanRecord } from '@/types/scanPipeline';
 
 export async function submitScan(params: {
   payload: ScanPersistPayload;
@@ -12,14 +11,21 @@ export async function submitScan(params: {
   modelVersion: string;
   usedCloudRefine: boolean;
   localResult?: SkinAnalysisResult;
+  angleImageUris?: AngleImageUris;
   token?: string | null;
 }): Promise<StoredScanRecord> {
-  const { payload, imageUri, confidence, modelVersion, usedCloudRefine, localResult } = params;
+  const { payload, imageUri, confidence, modelVersion, usedCloudRefine, localResult, angleImageUris } =
+    params;
 
   let result: SkinAnalysisResult;
 
   if (!isApiConfigured()) {
-    result = localResult ?? (await mockPersistScan(payload, imageUri));
+    if (localResult) {
+      result = localResult;
+    } else {
+      const local = await analyzeSkinLocally({ imageUri, quiz: payload.quizContext });
+      result = { ...local.result, imageUri };
+    }
   } else {
     try {
       result = await apiPost<SkinAnalysisResult>('/scans', payload, params.token);
@@ -37,5 +43,6 @@ export async function submitScan(params: {
     confidence,
     modelVersion,
     usedCloudRefine,
+    angleImageUris,
   };
 }

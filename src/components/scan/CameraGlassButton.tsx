@@ -3,7 +3,8 @@ import { BlurView } from 'expo-blur';
 import type { ComponentProps } from 'react';
 import { Pressable, StyleSheet } from 'react-native';
 
-import { colors, radius } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, useThemedStyles, useAppTheme } from '@/theme';
 
 type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -12,39 +13,24 @@ type Props = {
   accessibilityLabel: string;
   onPress?: () => void;
   iconColor?: string;
+  disabled?: boolean;
 };
 
-export function CameraGlassButton({
-  icon,
-  accessibilityLabel,
-  onPress,
-  iconColor = colors.textInverse,
-}: Props) {
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
-      onPress={onPress}
-      style={({ pressed }) => [styles.wrap, pressed && styles.pressed]}
-    >
-      <BlurView intensity={50} tint="dark" style={styles.blur}>
-        <MaterialCommunityIcons name={icon} size={24} color={iconColor} />
-      </BlurView>
-    </Pressable>
-  );
-}
-
-const BTN = 40;
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   wrap: {
     width: BTN,
     height: BTN,
     borderRadius: radius.full,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   pressed: {
     transform: [{ scale: 0.95 }],
+  },
+  disabled: {
+    opacity: 0.45,
   },
   blur: {
     flex: 1,
@@ -53,3 +39,35 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
   },
 });
+}
+
+export function CameraGlassButton({
+  icon,
+  accessibilityLabel,
+  onPress,
+  iconColor,
+  disabled,
+}: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  const iconColorResolved = iconColor ?? colors.textInverse;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
+      onPress={onPress}
+      disabled={disabled}
+      style={({ pressed }) => [
+        styles.wrap,
+        pressed && !disabled && styles.pressed,
+        disabled && styles.disabled,
+      ]}
+    >
+      <BlurView intensity={50} tint="dark" style={styles.blur}>
+        <MaterialCommunityIcons name={icon} size={24} color={iconColorResolved} />
+      </BlurView>
+    </Pressable>
+  );
+}
+
+const BTN = 40;

@@ -2,6 +2,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useMemo, useState } from 'react';
 
 import { getCompletedStepIds } from '@/core/storage/routinePreferences';
+import { syncRoutineActivity } from '@/utils/syncRoutineActivity';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
 import { MORNING_ROUTINE_PREVIEW } from '@/screens/home/homeMockData';
@@ -63,6 +64,7 @@ export function useHomeMorningRoutine() {
       await toggleStepCompleted('morning', stepId);
       const ids = await getCompletedStepIds('morning');
       setCompleted(ids);
+      await syncRoutineActivity();
     },
   };
 }

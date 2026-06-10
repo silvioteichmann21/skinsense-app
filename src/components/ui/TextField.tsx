@@ -10,13 +10,53 @@ import {
   View,
 } from 'react-native';
 
-import { colors, radius, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, touchTarget, typography, useAppTheme, useThemedStyles } from '@/theme';
 
 type Props = TextInputProps & {
   label: string;
   error?: string;
   secureToggle?: boolean;
 };
+
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    wrap: {
+      gap: 8,
+    },
+    label: {
+      ...typography.label,
+      color: colors.textSecondary,
+    },
+    inputWrap: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      minHeight: touchTarget,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surfaceAlt,
+    },
+    inputError: {
+      borderColor: colors.error,
+    },
+    input: {
+      flex: 1,
+      paddingHorizontal: 16,
+      ...typography.body,
+      color: colors.textPrimary,
+    },
+    eyeBtn: {
+      paddingHorizontal: 12,
+      height: touchTarget,
+      justifyContent: 'center',
+    },
+    error: {
+      ...typography.caption,
+      color: colors.error,
+    },
+  });
+}
 
 export const TextField = forwardRef<TextInputType, Props>(function TextField(
   { label, error, secureToggle, secureTextEntry, ...inputProps },
@@ -25,6 +65,8 @@ export const TextField = forwardRef<TextInputType, Props>(function TextField(
   const [masked, setMasked] = useState(
     secureToggle ? true : Boolean(secureTextEntry),
   );
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
 
   const isSecure = secureToggle ? masked : secureTextEntry;
 
@@ -57,41 +99,4 @@ export const TextField = forwardRef<TextInputType, Props>(function TextField(
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
-});
-
-const styles = StyleSheet.create({
-  wrap: {
-    gap: 8,
-  },
-  label: {
-    ...typography.label,
-    color: colors.textSecondary,
-  },
-  inputWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    minHeight: touchTarget,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  inputError: {
-    borderColor: colors.error,
-  },
-  input: {
-    flex: 1,
-    paddingHorizontal: 16,
-    ...typography.body,
-    color: colors.textPrimary,
-  },
-  eyeBtn: {
-    paddingHorizontal: 12,
-    height: touchTarget,
-    justifyContent: 'center',
-  },
-  error: {
-    ...typography.caption,
-    color: colors.error,
-  },
 });

@@ -3,7 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
-import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -16,21 +16,28 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ActiveIngredientCard } from '@/components/education/ActiveIngredientCard';
+import { GradientButton } from '@/components/ui/GradientButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { useLocalizedIngredients } from '@/i18n/content/useLocalizedIngredient';
+import { STEP_INGREDIENT_IDS } from '@/types/activeIngredient';
 import {
   getCompletedStepIds,
   setStepCompleted,
 } from '@/core/storage/routinePreferences';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
-import { getEnrichedStep } from '@/screens/routine/routineStepContent';
+import { useLocalizedEnrichedStep } from '@/i18n/content/useLocalizedRoutine';
 import { useRoutineStore } from '@/store/routineStore';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, shadows, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'RoutineStep'>;
 type Route = RouteProp<RootStackParamList, 'RoutineStep'>;
 
 function WhyBody({ text, highlight }: { text: string; highlight: string }) {
+  const styles = useThemedStyles(createStyles);
+
   if (!text.includes(highlight)) {
     return <Text style={styles.whyText}>{text}</Text>;
   }
@@ -44,198 +51,8 @@ function WhyBody({ text, highlight }: { text: string; highlight: string }) {
   );
 }
 
-export function RoutineStepScreen() {
-  const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
-  const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
-  const { stepId, period, stepIndex } = route.params;
-
-  const storedRoutine = useRoutineStore((s) => s.routine);
-  const step = getEnrichedStep(stepId, storedRoutine);
-  const [completed, setCompleted] = useState(false);
-
-  const loadDone = useCallback(async () => {
-    const ids = await getCompletedStepIds(period);
-    setCompleted(ids.has(stepId));
-  }, [period, stepId]);
-
-  useEffect(() => {
-    loadDone();
-  }, [loadDone]);
-
-  if (!step) {
-    return (
-      <View style={styles.root}>
-        <ScreenHeader topInset={insets.top} title="Step" />
-        <Text style={styles.missing}>{t('routine.stepNotFound')}</Text>
-      </View>
-    );
-  }
-
-  const { detail } = step;
-  const stepLabel = String(stepIndex + 1).padStart(2, '0');
-  const footerBottom = Math.max(insets.bottom, spacing.base);
-
-  const handleMarkDone = async () => {
-    const next = !completed;
-    await setStepCompleted(period, stepId, next);
-    setCompleted(next);
-    if (next) {
-      navigation.goBack();
-    }
-  };
-
-  return (
-    <View style={styles.root}>
-      <StatusBar style="dark" />
-      <ScreenHeader
-        topInset={insets.top}
-        title={step.name}
-        style={styles.headerBar}
-        right={
-          <Pressable
-            accessibilityLabel="More options"
-            onPress={() =>
-              Alert.alert(step.name, t('routine.stepOptionsSoon'))
-            }
-            style={styles.moreBtn}
-          >
-            <MaterialCommunityIcons name="dots-vertical" size={24} color={colors.textPrimary} />
-          </Pressable>
-        }
-      />
-
-      <ScrollView
-        contentContainerStyle={[styles.scroll, { paddingBottom: touchTarget + footerBottom + spacing.xxl }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.hero}>
-          <View style={styles.heroGrid} />
-          <Image source={{ uri: detail.heroImageUri }} style={styles.heroImage} contentFit="contain" />
-          <View style={styles.stepBadge}>
-            <Text style={styles.stepBadgeText}>STEP {stepLabel}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionTitleRow}>
-            <MaterialCommunityIcons name="auto-fix" size={22} color={colors.primary} />
-            <Text style={styles.sectionTitle}>{t('routine.whyTitle')}</Text>
-          </View>
-          <View style={styles.card}>
-            <WhyBody text={detail.why} highlight={detail.whyHighlight} />
-          </View>
-        </View>
-
-        <View style={styles.specGrid}>
-          <View style={styles.specCard}>
-            <Text style={styles.specLabel}>{t('routine.dosage')}</Text>
-            <View style={styles.dosageRow}>
-              <MaterialCommunityIcons name="water" size={20} color={colors.accent} />
-              <Text style={styles.dosageValue}>{detail.dosage.value}</Text>
-            </View>
-            <Text style={styles.specSub}>{detail.dosage.unit}</Text>
-          </View>
-          <View style={styles.specCard}>
-            <Text style={styles.specLabel}>{t('routine.when')}</Text>
-            <View style={styles.whenRow}>
-              {detail.when.am ? (
-                <View style={styles.whenChip}>
-                  <MaterialCommunityIcons name="weather-sunny" size={14} color={colors.primaryDark} />
-                  <Text style={styles.whenChipText}>AM</Text>
-                </View>
-              ) : null}
-              {detail.when.pm ? (
-                <View style={styles.whenChip}>
-                  <MaterialCommunityIcons name="weather-night" size={14} color={colors.primaryDark} />
-                  <Text style={styles.whenChipText}>PM</Text>
-                </View>
-              ) : null}
-            </View>
-            <Text style={styles.whenFreq}>{detail.when.frequency}</Text>
-          </View>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitlePlain}>{t('routine.howToApply')}</Text>
-          <View style={styles.applyCard}>
-            {detail.applySteps.map((line, i) => (
-              <View key={line} style={[styles.applyRow, i > 0 && styles.applyRowBorder]}>
-                <View style={styles.applyNum}>
-                  <Text style={styles.applyNumText}>{i + 1}</Text>
-                </View>
-                <Text style={styles.applyLine}>{line}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <View style={styles.proTip}>
-          <View style={styles.proTipIcon}>
-            <MaterialCommunityIcons name="lightbulb-outline" size={22} color={colors.primaryDark} />
-          </View>
-          <View style={styles.proTipBody}>
-            <Text style={styles.proTipLabel}>{t('routine.proTip')}</Text>
-            <Text style={styles.proTipText}>{detail.proTip}</Text>
-          </View>
-        </View>
-
-        <View style={styles.productsHeader}>
-          <Text style={styles.sectionTitlePlain}>{t('routine.recommended')}</Text>
-          <Pressable onPress={() => navigation.navigate('Products')}>
-            <Text style={styles.viewAll}>{t('routine.viewAll')}</Text>
-          </Pressable>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.productsScroll}>
-          {detail.products.map((product) => (
-            <Pressable
-              key={product.id}
-              style={styles.productCard}
-              onPress={() => {
-                const catalogId =
-                  product.id === 'r1'
-                    ? 'cerave-cleanser'
-                    : product.id === 'r2'
-                      ? 'laneige-cream'
-                      : 'skinceuticals-ce';
-                navigation.navigate('ProductDetail', { productId: catalogId });
-              }}
-            >
-              <View style={styles.productImageWrap}>
-                <Image source={{ uri: product.imageUri }} style={styles.productImage} contentFit="cover" />
-              </View>
-              <Text style={styles.productName} numberOfLines={1}>
-                {product.name}
-              </Text>
-              <Text style={styles.productMatch}>
-                {t('products.matchPercent', { percent: product.matchPercent })}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </ScrollView>
-
-      <BlurView intensity={80} tint="light" style={[styles.footer, { paddingBottom: footerBottom }]}>
-        <Pressable
-          style={[styles.markBtn, completed && styles.markBtnDone]}
-          onPress={handleMarkDone}
-        >
-          <MaterialCommunityIcons
-            name={completed ? 'check-decagram' : 'check-circle-outline'}
-            size={22}
-            color={colors.textInverse}
-          />
-          <Text style={styles.markBtnLabel}>
-            {completed ? t('routine.completed') : t('routine.markDone')}
-          </Text>
-        </Pressable>
-      </BlurView>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.background,
@@ -264,7 +81,7 @@ const styles = StyleSheet.create({
   hero: {
     height: 192,
     borderRadius: radius.lg,
-    backgroundColor: '#F1F3FF',
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -272,22 +89,26 @@ const styles = StyleSheet.create({
   heroGrid: {
     ...StyleSheet.absoluteFillObject,
     opacity: 0.08,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.ctaTint,
   },
-  heroImage: {
-    width: 128,
-    height: 128,
+  heroIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: radius.full,
+    backgroundColor: colors.primaryPale,
+    alignItems: 'center',
+    justifyContent: 'center',
     zIndex: 1,
   },
   stepBadge: {
     position: 'absolute',
     bottom: spacing.lg,
     right: spacing.lg,
-    backgroundColor: colors.primary,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.full,
     zIndex: 2,
+    overflow: 'hidden',
   },
   stepBadgeText: {
     ...typography.label,
@@ -380,7 +201,7 @@ const styles = StyleSheet.create({
   },
   whenChipText: {
     ...typography.label,
-    color: colors.primaryDark,
+    color: colors.onPrimaryPale,
     fontSize: 10,
     textTransform: 'none',
   },
@@ -454,7 +275,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textSecondary,
   },
-  productsHeader: {
+  ingredientsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
@@ -464,40 +285,15 @@ const styles = StyleSheet.create({
     color: colors.primary,
     textTransform: 'none',
   },
-  productsScroll: {
-    gap: spacing.lg,
+  ingredientsScroll: {
+    gap: spacing.md,
     paddingBottom: spacing.sm,
   },
-  productCard: {
-    width: 160,
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    ...shadows.sm,
-  },
-  productImageWrap: {
-    height: 128,
-    borderRadius: radius.md,
-    backgroundColor: colors.background,
-    overflow: 'hidden',
+  ingredientsHint: {
+    ...typography.caption,
+    color: colors.textSecondary,
     marginBottom: spacing.md,
-  },
-  productImage: {
-    width: '100%',
-    height: '100%',
-  },
-  productName: {
-    ...typography.label,
-    color: colors.textPrimary,
-    textTransform: 'none',
-  },
-  productMatch: {
-    fontFamily: typography.h3.fontFamily,
-    fontSize: 13,
-    color: colors.primaryContainer,
-    marginTop: spacing.xs,
+    lineHeight: 18,
   },
   footer: {
     position: 'absolute',
@@ -511,20 +307,204 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   markBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.primary,
-    height: touchTarget,
-    borderRadius: radius.lg,
-    ...shadows.md,
+    width: '100%',
   },
-  markBtnDone: {
-    backgroundColor: '#006D48',
+  markBtnContent: {
+    gap: spacing.sm,
   },
   markBtnLabel: {
     ...typography.h3,
     color: colors.textInverse,
   },
 });
+}
+
+export function RoutineStepScreen() {
+  const styles = useThemedStyles(createStyles);
+  const { colors, statusBarStyle, blurTint } = useAppTheme();
+
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const { stepId, period, stepIndex } = route.params;
+
+  const storedRoutine = useRoutineStore((s) => s.routine);
+  const step = useLocalizedEnrichedStep(stepId, storedRoutine);
+  const ingredientIds = STEP_INGREDIENT_IDS[stepId] ?? [];
+  const keyIngredients = useLocalizedIngredients(ingredientIds);
+  const [completed, setCompleted] = useState(false);
+
+  const loadDone = useCallback(async () => {
+    const ids = await getCompletedStepIds(period);
+    setCompleted(ids.has(stepId));
+  }, [period, stepId]);
+
+  useEffect(() => {
+    loadDone();
+  }, [loadDone]);
+
+  if (!step) {
+    return (
+      <View style={styles.root}>
+        <ScreenHeader topInset={insets.top} title="Step" />
+        <Text style={styles.missing}>{t('routine.stepNotFound')}</Text>
+      </View>
+    );
+  }
+
+  const { detail } = step;
+  const stepLabel = String(stepIndex + 1).padStart(2, '0');
+  const footerBottom = Math.max(insets.bottom, spacing.base);
+
+  const handleMarkDone = async () => {
+    const next = !completed;
+    await setStepCompleted(period, stepId, next);
+    setCompleted(next);
+    if (next) {
+      navigation.goBack();
+    }
+  };
+
+  return (
+    <View style={styles.root}>
+      <StatusBar style={statusBarStyle} />
+      <ScreenHeader
+        topInset={insets.top}
+        title={step.name}
+        style={styles.headerBar}
+        right={
+          <Pressable
+            accessibilityLabel="More options"
+            onPress={() =>
+              Alert.alert(step.name, t('routine.stepOptionsSoon'))
+            }
+            style={styles.moreBtn}
+          >
+            <MaterialCommunityIcons name="dots-vertical" size={24} color={colors.textPrimary} />
+          </Pressable>
+        }
+      />
+
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: touchTarget + footerBottom + spacing.xxl }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <View style={styles.heroGrid} />
+          <View style={styles.heroIconWrap}>
+            <MaterialCommunityIcons name={detail.heroIcon} size={40} color={colors.primary} />
+          </View>
+          <LinearGradient
+            colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+            locations={[0, 0.48, 1]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.stepBadge}
+          >
+            <Text style={styles.stepBadgeText}>
+              {t('routine.stepBadge', { label: stepLabel })}
+            </Text>
+          </LinearGradient>
+        </View>
+
+        <View style={styles.section}>
+          <View style={styles.sectionTitleRow}>
+            <MaterialCommunityIcons name="auto-fix" size={22} color={colors.primary} />
+            <Text style={styles.sectionTitle}>{t('routine.whyTitle')}</Text>
+          </View>
+          <View style={styles.card}>
+            <WhyBody text={detail.why} highlight={detail.whyHighlight} />
+          </View>
+        </View>
+
+        <View style={styles.specGrid}>
+          <View style={styles.specCard}>
+            <Text style={styles.specLabel}>{t('routine.dosage')}</Text>
+            <View style={styles.dosageRow}>
+              <MaterialCommunityIcons name="water" size={20} color={colors.accent} />
+              <Text style={styles.dosageValue}>{detail.dosage.value}</Text>
+            </View>
+            <Text style={styles.specSub}>{detail.dosage.unit}</Text>
+          </View>
+          <View style={styles.specCard}>
+            <Text style={styles.specLabel}>{t('routine.when')}</Text>
+            <View style={styles.whenRow}>
+              {detail.when.am ? (
+                <View style={styles.whenChip}>
+                  <MaterialCommunityIcons name="weather-sunny" size={14} color={colors.onPrimaryPale} />
+                  <Text style={styles.whenChipText}>{t('routine.whenAm')}</Text>
+                </View>
+              ) : null}
+              {detail.when.pm ? (
+                <View style={styles.whenChip}>
+                  <MaterialCommunityIcons name="weather-night" size={14} color={colors.onPrimaryPale} />
+                  <Text style={styles.whenChipText}>{t('routine.whenPm')}</Text>
+                </View>
+              ) : null}
+            </View>
+            <Text style={styles.whenFreq}>{detail.when.frequency}</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitlePlain}>{t('routine.howToApply')}</Text>
+          <View style={styles.applyCard}>
+            {detail.applySteps.map((line, i) => (
+              <View key={line} style={[styles.applyRow, i > 0 && styles.applyRowBorder]}>
+                <View style={styles.applyNum}>
+                  <Text style={styles.applyNumText}>{i + 1}</Text>
+                </View>
+                <Text style={styles.applyLine}>{line}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.proTip}>
+          <View style={styles.proTipIcon}>
+            <MaterialCommunityIcons name="lightbulb-outline" size={22} color={colors.onPrimaryPale} />
+          </View>
+          <View style={styles.proTipBody}>
+            <Text style={styles.proTipLabel}>{t('routine.proTip')}</Text>
+            <Text style={styles.proTipText}>{detail.proTip}</Text>
+          </View>
+        </View>
+
+        <View style={styles.ingredientsHeader}>
+          <Text style={styles.sectionTitlePlain}>{t('routine.keyIngredients')}</Text>
+          <Pressable onPress={() => navigation.navigate('ScienceLibrary')}>
+            <Text style={styles.viewAll}>{t('routine.viewAll')}</Text>
+          </Pressable>
+        </View>
+        <Text style={styles.ingredientsHint}>{t('routine.keyIngredientsHint')}</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.ingredientsScroll}>
+          {keyIngredients.map((ingredient) => (
+            <ActiveIngredientCard
+              key={ingredient.id}
+              ingredient={ingredient}
+              onPress={() => navigation.navigate('IngredientDetail', { ingredientId: ingredient.id })}
+            />
+          ))}
+        </ScrollView>
+      </ScrollView>
+
+      <BlurView intensity={80} tint={blurTint} style={[styles.footer, { paddingBottom: footerBottom }]}>
+        <GradientButton
+          style={styles.markBtn}
+          contentStyle={styles.markBtnContent}
+          onPress={handleMarkDone}
+        >
+          <MaterialCommunityIcons
+            name={completed ? 'check-decagram' : 'check-circle-outline'}
+            size={22}
+            color={colors.textInverse}
+          />
+          <Text style={styles.markBtnLabel}>
+            {completed ? t('routine.completed') : t('routine.markDone')}
+          </Text>
+        </GradientButton>
+      </BlurView>
+    </View>
+  );
+}

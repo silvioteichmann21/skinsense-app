@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect } from 'react';
@@ -14,16 +14,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AuthDecorBackground } from '@/components/auth/AuthDecorBackground';
 import { resolveSplashRoute } from '@/core/navigation/authRouting';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useAuthStore } from '@/store/authStore';
-import { colors, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { spacing, typography, useThemedStyles } from '@/theme';
 
 const MIN_DISPLAY_MS = 1500;
 
 type SplashNav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
 function LoadingDots() {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <View style={styles.dotsRow}>
       {[0, 1, 2].map((i) => (
@@ -34,6 +38,7 @@ function LoadingDots() {
 }
 
 function AnimatedDot({ index }: { index: number }) {
+  const styles = useThemedStyles(createStyles);
   const opacity = useSharedValue(0.2);
 
   useEffect(() => {
@@ -57,7 +62,69 @@ function AnimatedDot({ index }: { index: number }) {
   return <Animated.View style={[styles.dot, style]} />;
 }
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: colors.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  glowOrb: {
+    position: 'absolute',
+    width: ORB_SIZE,
+    height: ORB_SIZE,
+    borderRadius: ORB_SIZE / 2,
+    backgroundColor: colors.primaryPale,
+    opacity: 0.35,
+  },
+  content: {
+    alignItems: 'center',
+    paddingHorizontal: spacing.base,
+    zIndex: 1,
+  },
+  iconWrap: {
+    marginBottom: spacing.xl,
+  },
+  icon: {
+    width: 160,
+    height: 160,
+    borderRadius: 36,
+  },
+  brand: {
+    ...typography.h1,
+    color: colors.textPrimary,
+    marginBottom: spacing.sm,
+  },
+  tagline: {
+    ...typography.bodyLg,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  dotsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.ctaGradientStart,
+  },
+});
+}
+
 export function SplashScreen() {
+  const styles = useThemedStyles(createStyles);
+
   const navigation = useNavigation<SplashNav>();
   const insets = useSafeAreaInsets();
   const isInitialized = useAuthStore((s) => s.isInitialized);
@@ -129,15 +196,15 @@ export function SplashScreen() {
 
   return (
     <View style={styles.root}>
+      <AuthDecorBackground />
       <Animated.View style={[styles.glowOrb, glowStyle]} />
 
       <Animated.View style={[styles.content, contentStyle]}>
         <View style={styles.iconWrap}>
-          <MaterialCommunityIcons
-            name="leaf"
-            size={64}
-            color={colors.textInverse}
+          <Image
+            source={require('../../../assets/icon-skinsense-v2.png')}
             style={styles.icon}
+            contentFit="contain"
           />
         </View>
         <Text style={styles.brand}>SkinSense</Text>
@@ -158,59 +225,3 @@ export function SplashScreen() {
 }
 
 const ORB_SIZE = 320;
-
-const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.primaryContainer,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  glowOrb: {
-    position: 'absolute',
-    width: ORB_SIZE,
-    height: ORB_SIZE,
-    borderRadius: ORB_SIZE / 2,
-    backgroundColor: colors.primaryPale,
-  },
-  content: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.base,
-    zIndex: 1,
-  },
-  iconWrap: {
-    marginBottom: spacing.xl,
-  },
-  icon: {
-    opacity: 0.92,
-  },
-  brand: {
-    ...typography.h1,
-    color: colors.textInverse,
-    marginBottom: spacing.sm,
-  },
-  tagline: {
-    ...typography.bodyLg,
-    color: colors.textInverse,
-    opacity: 0.8,
-    textAlign: 'center',
-    maxWidth: 280,
-  },
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  dotsRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.textInverse,
-  },
-});

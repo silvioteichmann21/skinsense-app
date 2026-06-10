@@ -24,7 +24,7 @@
 .logo {
   font-size: 1.125rem;
   font-weight: 700;
-  color: var(--primary-dark);
+  color: var(--text);
 }
 
 .links {
@@ -37,7 +37,7 @@
 }
 
 .links a:hover {
-  color: var(--primary);
+  color: var(--cta-start);
 }
 
 .end {
@@ -63,7 +63,7 @@
   place-items: center;
   width: 2.25rem;
   height: 2.25rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface);
   color: var(--text-muted);
@@ -72,8 +72,8 @@
 }
 
 .iconBtn:hover {
-  border-color: var(--primary);
-  color: var(--primary);
+  border-color: var(--cta-mid);
+  color: var(--cta-start);
 }
 
 .copy {

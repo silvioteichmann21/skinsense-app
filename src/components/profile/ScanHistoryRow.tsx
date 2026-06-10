@@ -1,35 +1,17 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import type { ScanHistoryEntry } from '@/screens/profile/skinProfileMockData';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { LocalizedScanHistoryEntry } from '@/i18n/content/useLocalizedSkinProfile';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Props = {
-  entry: ScanHistoryEntry;
+  entry: LocalizedScanHistoryEntry;
   onPress?: () => void;
 };
 
-export function ScanHistoryRow({ entry, onPress }: Props) {
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
-    >
-      <View style={styles.left}>
-        <View style={styles.scoreCircle}>
-          <Text style={styles.score}>{entry.score}</Text>
-        </View>
-        <View>
-          <Text style={styles.date}>{entry.dateLabel}</Text>
-          <Text style={styles.scanType}>{entry.scanType}</Text>
-        </View>
-      </View>
-      <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textTertiary} />
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -73,3 +55,27 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+}
+
+export function ScanHistoryRow({
+ entry, onPress }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+    >
+      <View style={styles.left}>
+        <View style={styles.scoreCircle}>
+          <Text style={styles.score}>{entry.score}</Text>
+        </View>
+        <View>
+          <Text style={styles.date}>{entry.dateLabel}</Text>
+          <Text style={styles.scanType}>{entry.scanType}</Text>
+        </View>
+      </View>
+      <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textTertiary} />
+    </Pressable>
+  );
+}

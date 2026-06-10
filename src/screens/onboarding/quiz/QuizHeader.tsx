@@ -1,9 +1,11 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { ScreenBackButton, ScreenHeaderSpacer } from '@/components/ui/ScreenBackButton';
 import { useTranslation } from '@/i18n/useTranslation';
-import { colors, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, spacing, touchTarget, typography, useAppTheme, useThemedStyles } from '@/theme';
 
 type Props = {
   step: number;
@@ -16,6 +18,65 @@ type Props = {
   variant?: 'step1' | 'brand';
 };
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+  bar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.base,
+    minHeight: touchTarget,
+    backgroundColor: colors.background,
+  },
+  sideBtn: {
+    width: touchTarget,
+    height: touchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  step1Center: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  stepLabel: {
+    ...typography.label,
+    color: colors.textSecondary,
+    textTransform: 'none',
+    letterSpacing: 0,
+  },
+  miniTrack: {
+    width: 96,
+    height: 5,
+    backgroundColor: colors.ctaTint,
+    borderRadius: radius.full,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  miniFill: {
+    height: '100%',
+    borderRadius: radius.full,
+  },
+  brand: {
+    ...typography.h3,
+    color: colors.ctaGradientStart,
+    flex: 1,
+    textAlign: 'center',
+  },
+  skipBtn: {
+    minWidth: touchTarget,
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingRight: spacing.xs,
+  },
+  skipText: {
+    ...typography.label,
+    color: colors.ctaGradientStart,
+    textTransform: 'none',
+    letterSpacing: 0,
+  },
+});
+}
+
 export function QuizHeader({
   step,
   totalSteps,
@@ -26,6 +87,8 @@ export function QuizHeader({
   onSkip,
   variant = 'brand',
 }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
   const { t } = useTranslation();
   const progress = step / totalSteps;
 
@@ -38,7 +101,13 @@ export function QuizHeader({
             {t('common.stepOf', { current: step, total: totalSteps })}
           </Text>
           <View style={styles.miniTrack}>
-            <View style={[styles.miniFill, { width: `${progress * 100}%` }]} />
+            <LinearGradient
+              colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+              locations={[0, 0.48, 1]}
+              start={{ x: 0, y: 0.5 }}
+              end={{ x: 1, y: 0.5 }}
+              style={[styles.miniFill, { width: `${progress * 100}%` }]}
+            />
           </View>
         </View>
         <Pressable
@@ -67,61 +136,3 @@ export function QuizHeader({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.base,
-    minHeight: touchTarget,
-    backgroundColor: colors.background,
-  },
-  sideBtn: {
-    width: touchTarget,
-    height: touchTarget,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  step1Center: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  stepLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-  miniTrack: {
-    width: 96,
-    height: 4,
-    backgroundColor: colors.borderMuted,
-    borderRadius: 2,
-    marginTop: 4,
-    overflow: 'hidden',
-  },
-  miniFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 2,
-  },
-  brand: {
-    ...typography.h3,
-    color: colors.primary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  skipBtn: {
-    minWidth: touchTarget,
-    alignItems: 'flex-end',
-    justifyContent: 'center',
-    paddingRight: spacing.xs,
-  },
-  skipText: {
-    ...typography.label,
-    color: colors.primary,
-    textTransform: 'none',
-    letterSpacing: 0,
-  },
-});

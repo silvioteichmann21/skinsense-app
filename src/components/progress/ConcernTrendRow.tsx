@@ -3,40 +3,15 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { Sparkline } from '@/components/progress/Sparkline';
 import type { ConcernTrend } from '@/screens/progress/progressMockData';
-import { colors, radius, shadows, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Props = {
   concern: ConcernTrend;
 };
 
-export function ConcernTrendRow({ concern }: Props) {
-  return (
-    <View style={styles.row}>
-      <View style={styles.left}>
-        <View style={[styles.iconWrap, { backgroundColor: concern.iconBg }]}>
-          <MaterialCommunityIcons name={concern.icon} size={22} color={concern.iconColor} />
-        </View>
-        <View>
-          <Text style={styles.name}>{concern.name}</Text>
-          <Text style={styles.status}>{concern.status}</Text>
-        </View>
-      </View>
-      <View style={styles.right}>
-        <Sparkline values={concern.sparkline} stroke={concern.sparkStroke ?? colors.primary} />
-        <Text
-          style={[
-            styles.change,
-            concern.changePositive ? styles.changeUp : styles.changeDown,
-          ]}
-        >
-          {concern.change}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -88,3 +63,34 @@ const styles = StyleSheet.create({
     color: colors.accent,
   },
 });
+}
+
+export function ConcernTrendRow({
+ concern }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  return (
+    <View style={styles.row}>
+      <View style={styles.left}>
+        <View style={[styles.iconWrap, { backgroundColor: concern.iconBg }]}>
+          <MaterialCommunityIcons name={concern.icon} size={22} color={concern.iconColor} />
+        </View>
+        <View>
+          <Text style={styles.name}>{concern.name}</Text>
+          <Text style={styles.status}>{concern.status}</Text>
+        </View>
+      </View>
+      <View style={styles.right}>
+        <Sparkline values={concern.sparkline} stroke={concern.sparkStroke ?? colors.primary} />
+        <Text
+          style={[
+            styles.change,
+            concern.changePositive ? styles.changeUp : styles.changeDown,
+          ]}
+        >
+          {concern.change}
+        </Text>
+      </View>
+    </View>
+  );
+}

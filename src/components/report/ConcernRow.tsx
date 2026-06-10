@@ -1,31 +1,33 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/ui/PressableScale';
 import type { ReportConcern } from '@/types/skinAnalysis';
-import { colors, radius, spacing, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Props = {
   concern: ReportConcern;
   onPress?: () => void;
 };
 
-function severityStyles(severity: ReportConcern['severity']) {
+function severityStyles(severity: ReportConcern['severity'], colors: AppColors) {
   switch (severity) {
     case 'medium':
       return {
-        badgeBg: '#FFDCC4',
-        badgeText: '#8E4E14',
-        bar: '#8E4E14',
-        icon: '#8E4E14',
-        border: '#FFB780',
+        badgeBg: colors.severityMedBg,
+        badgeText: colors.severityMedText,
+        bar: colors.severityMedText,
+        icon: colors.severityMedText,
+        border: colors.severityMedBorder,
       };
     case 'high':
       return {
-        badgeBg: colors.error + '22',
-        badgeText: colors.error,
-        bar: colors.error,
-        icon: colors.error,
-        border: colors.error,
+        badgeBg: colors.severityHighBg,
+        badgeText: colors.severityHighText,
+        bar: colors.severityHighText,
+        icon: colors.severityHighText,
+        border: colors.severityHighBorder,
       };
     case 'healthy':
       return {
@@ -46,52 +48,16 @@ function severityStyles(severity: ReportConcern['severity']) {
   }
 }
 
-export function ConcernRow({ concern, onPress }: Props) {
-  const palette = severityStyles(concern.severity);
-
-  return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-      disabled={!onPress}
-    >
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <MaterialCommunityIcons name={concern.icon} size={22} color={palette.icon} />
-          <Text style={styles.name}>{concern.name}</Text>
-          {onPress ? (
-            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
-          ) : null}
-        </View>
-        <Text style={[styles.badge, { backgroundColor: palette.badgeBg, color: palette.badgeText }]}>
-          {concern.severityLabel}
-        </Text>
-      </View>
-      <View style={styles.track}>
-        <View
-          style={[styles.fill, { width: `${concern.barPercent}%`, backgroundColor: palette.bar }]}
-        />
-      </View>
-      {concern.insight ? (
-        <Text style={[styles.insight, { borderLeftColor: palette.border }]}>
-          &ldquo;{concern.insight}&rdquo;
-        </Text>
-      ) : null}
-    </Pressable>
-  );
-}
-
-const styles = StyleSheet.create({
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
   card: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    borderRadius: radius.md,
-    padding: spacing.base,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.hairline,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     marginBottom: spacing.base,
-  },
-  cardPressed: {
-    opacity: 0.92,
+    ...shadows.sm,
   },
   header: {
     flexDirection: 'row',
@@ -119,7 +85,7 @@ const styles = StyleSheet.create({
   },
   track: {
     height: 8,
-    backgroundColor: '#E9EDFF',
+    backgroundColor: colors.periodTrack,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: spacing.md,
@@ -136,3 +102,43 @@ const styles = StyleSheet.create({
     paddingLeft: spacing.md,
   },
 });
+}
+
+export function ConcernRow({
+ concern, onPress }: Props) {
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
+  const palette = severityStyles(concern.severity, colors);
+
+  return (
+    <PressableScale
+      onPress={onPress}
+      style={styles.card}
+      disabled={!onPress}
+      haptic={onPress ? 'light' : 'none'}
+    >
+      <View style={styles.header}>
+        <View style={styles.titleRow}>
+          <MaterialCommunityIcons name={concern.icon} size={22} color={palette.icon} />
+          <Text style={styles.name}>{concern.name}</Text>
+          {onPress ? (
+            <MaterialCommunityIcons name="chevron-right" size={20} color={colors.textTertiary} />
+          ) : null}
+        </View>
+        <Text style={[styles.badge, { backgroundColor: palette.badgeBg, color: palette.badgeText }]}>
+          {concern.severityLabel}
+        </Text>
+      </View>
+      <View style={styles.track}>
+        <View
+          style={[styles.fill, { width: `${concern.barPercent}%`, backgroundColor: palette.bar }]}
+        />
+      </View>
+      {concern.insight ? (
+        <Text style={[styles.insight, { borderLeftColor: palette.border }]}>
+          &ldquo;{concern.insight}&rdquo;
+        </Text>
+      ) : null}
+    </PressableScale>
+  );
+}

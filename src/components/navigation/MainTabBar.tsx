@@ -1,11 +1,14 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PressableScale } from '@/components/ui/PressableScale';
 import type { MainTabParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
-import { colors, radius, shadows, spacing, touchTarget, typography } from '@/theme';
+import type { AppColors } from '@/theme/palettes';
+import { ctaGlow, radius, shadows, spacing, touchTarget, typography, useAppTheme, useThemedStyles } from '@/theme';
 
 type TabKey = keyof MainTabParamList;
 
@@ -21,9 +24,72 @@ const TAB_CONFIG: {
   { name: 'More', labelKey: 'tabs.more', icon: 'dots-horizontal' },
 ];
 
+function createStyles(colors: AppColors) {
+  return StyleSheet.create({
+    bar: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      justifyContent: 'space-around',
+      backgroundColor: colors.surface,
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.hairline,
+      paddingTop: spacing.sm,
+      minHeight: touchTarget + spacing.sm,
+      ...shadows.lg,
+    },
+    tab: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: spacing.xs,
+    },
+    iconPill: {
+      width: 44,
+      height: 30,
+      borderRadius: radius.full,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconPillActive: {
+      backgroundColor: colors.ctaTint,
+    },
+    tabLabel: {
+      ...typography.label,
+      color: colors.textTertiary,
+      marginTop: 3,
+      fontSize: 10,
+    },
+    tabLabelActive: {
+      color: colors.ctaGradientStart,
+      fontFamily: typography.h3.fontFamily,
+    },
+    fabSlot: {
+      width: 72,
+      alignItems: 'center',
+      marginTop: -spacing.xl,
+    },
+    fabShell: {
+      width: 64,
+      height: 64,
+      borderRadius: radius.full,
+      borderWidth: 4,
+      borderColor: colors.surface,
+      overflow: 'hidden',
+      ...ctaGlow(colors.ctaGlow, 'lg'),
+    },
+    fabGradient: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+  });
+}
+
 export function MainTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const styles = useThemedStyles(createStyles);
+  const { colors } = useAppTheme();
 
   const openScan = () => {
     const parent = navigation.getParent();
@@ -32,123 +98,66 @@ export function MainTabBar({ state, descriptors, navigation }: BottomTabBarProps
     }
   };
 
+  const renderTab = (tab: (typeof TAB_CONFIG)[number]) => {
+    const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
+    const route = state.routes[routeIndex];
+    if (!route) return null;
+    const focused = state.index === routeIndex;
+    const { options } = descriptors[route.key];
+
+    return (
+      <Pressable
+        key={tab.name}
+        accessibilityRole="button"
+        accessibilityState={focused ? { selected: true } : {}}
+        accessibilityLabel={options.tabBarAccessibilityLabel ?? t(tab.labelKey)}
+        onPress={() => navigation.navigate(tab.name)}
+        style={styles.tab}
+      >
+        <View style={[styles.iconPill, focused && styles.iconPillActive]}>
+          <MaterialCommunityIcons
+            name={focused && tab.iconActive ? tab.iconActive : tab.icon}
+            size={24}
+            color={focused ? colors.ctaGradientStart : colors.textTertiary}
+          />
+        </View>
+        <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
+          {t(tab.labelKey)}
+        </Text>
+      </Pressable>
+    );
+  };
+
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
-      {TAB_CONFIG.slice(0, 2).map((tab) => {
-        const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
-        const route = state.routes[routeIndex];
-        if (!route) return null;
-        const focused = state.index === routeIndex;
-        const { options } = descriptors[route.key];
-
-        return (
-          <Pressable
-            key={tab.name}
-            accessibilityRole="button"
-            accessibilityState={focused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel ?? t(tab.labelKey)}
-            onPress={() => navigation.navigate(tab.name)}
-            style={styles.tab}
-          >
-            <MaterialCommunityIcons
-              name={focused && tab.iconActive ? tab.iconActive : tab.icon}
-              size={24}
-              color={focused ? colors.primary : colors.textTertiary}
-            />
-            <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-              {t(tab.labelKey)}
-            </Text>
-          </Pressable>
-        );
-      })}
+      {TAB_CONFIG.slice(0, 2).map(renderTab)}
 
       <View style={styles.fabSlot}>
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel={t('tabs.scan')}
           onPress={openScan}
-          style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
+          haptic="medium"
+          pressedScale={0.92}
+          style={styles.fabShell}
         >
-          <MaterialCommunityIcons name="image-filter-center-focus" size={32} color={colors.textInverse} />
-        </Pressable>
-      </View>
-
-      {TAB_CONFIG.slice(2).map((tab) => {
-        const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
-        const route = state.routes[routeIndex];
-        if (!route) return null;
-        const focused = state.index === routeIndex;
-        const { options } = descriptors[route.key];
-
-        return (
-          <Pressable
-            key={tab.name}
-            accessibilityRole="button"
-            accessibilityState={focused ? { selected: true } : {}}
-            accessibilityLabel={options.tabBarAccessibilityLabel ?? t(tab.labelKey)}
-            onPress={() => navigation.navigate(tab.name)}
-            style={styles.tab}
+          <LinearGradient
+            colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
+            locations={[0, 0.48, 1]}
+            start={{ x: 0, y: 0.5 }}
+            end={{ x: 1, y: 0.5 }}
+            style={styles.fabGradient}
           >
             <MaterialCommunityIcons
-              name={tab.icon}
-              size={24}
-              color={focused ? colors.primary : colors.textTertiary}
+              name="image-filter-center-focus"
+              size={32}
+              color={colors.textInverse}
             />
-            <Text style={[styles.tabLabel, focused && styles.tabLabelActive]}>
-              {t(tab.labelKey)}
-            </Text>
-          </Pressable>
-        );
-      })}
+          </LinearGradient>
+        </PressableScale>
+      </View>
+
+      {TAB_CONFIG.slice(2).map(renderTab)}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  bar: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-around',
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.borderMuted,
-    paddingTop: spacing.sm,
-    minHeight: touchTarget + spacing.sm,
-    ...shadows.sm,
-  },
-  tab: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.xs,
-  },
-  tabLabel: {
-    ...typography.label,
-    color: colors.textTertiary,
-    marginTop: 2,
-    fontSize: 10,
-  },
-  tabLabelActive: {
-    color: colors.primary,
-    fontFamily: typography.h3.fontFamily,
-  },
-  fabSlot: {
-    width: 72,
-    alignItems: 'center',
-    marginTop: -spacing.xl,
-  },
-  fab: {
-    width: 64,
-    height: 64,
-    borderRadius: radius.full,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: colors.background,
-    ...shadows.md,
-  },
-  fabPressed: {
-    transform: [{ scale: 0.92 }],
-  },
-});
