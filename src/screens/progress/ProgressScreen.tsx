@@ -3,7 +3,6 @@ import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import {
@@ -29,27 +28,22 @@ import { useScanPhotoTimeline } from '@/hooks/useScanPhotoTimeline';
 import { useProgressMetrics } from '@/hooks/useProgressMetrics';
 import type { TrendPeriod } from '@/screens/progress/progressMockData';
 import type { AppColors } from '@/theme/palettes';
-import { layout, radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
+import {
+  flatCard,
+  layout,
+  radius,
+  sectionTitleStyle,
+  spacing,
+  typography,
+  useThemedStyles,
+  useAppTheme,
+} from '@/theme';
 
 const PERIODS: { id: TrendPeriod; labelKey: TranslationKey }[] = [
   { id: '30d', labelKey: 'progress.period30' },
   { id: '90d', labelKey: 'progress.period90' },
   { id: '180d', labelKey: 'progress.period180' },
 ];
-
-const CONCERN_NAME_KEYS: Record<string, TranslationKey> = {
-  hydration: 'progress.concerns.hydration',
-  acne: 'progress.concerns.acne',
-  texture: 'progress.concerns.texture',
-  redness: 'progress.concerns.redness',
-};
-
-const STATUS_KEYS: Record<string, TranslationKey> = {
-  Optimal: 'progress.status.optimal',
-  Calming: 'progress.status.calming',
-  'Needs Focus': 'progress.status.needsFocus',
-  Improving: 'progress.status.improving',
-};
 
 const MILESTONE_LABEL_KEYS: Record<string, TranslationKey> = {
   m1: 'progress.milestoneLabels.sevenDay',
@@ -74,22 +68,7 @@ function createStyles(colors: AppColors) {
     paddingTop: spacing.lg,
     gap: spacing.xxl,
   },
-  digest: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
-    overflow: 'hidden',
-    ...shadows.sm,
-  },
-  digestWatermark: {
-    position: 'absolute',
-    top: spacing.md,
-    right: spacing.md,
-    opacity: 0.2,
-  },
-  digestContent: {
-    zIndex: 1,
-  },
+  digest: flatCard(colors),
   digestLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -97,14 +76,15 @@ function createStyles(colors: AppColors) {
     marginBottom: spacing.sm,
   },
   digestLabel: {
-    ...typography.label,
-    color: colors.onPrimaryContainerMuted,
-    letterSpacing: 2,
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontFamily: typography.h3.fontFamily,
   },
   digestBody: {
-    ...typography.bodyLg,
-    color: colors.onPrimaryContainer,
+    ...typography.body,
+    color: colors.textPrimary,
     marginBottom: spacing.lg,
+    lineHeight: 22,
   },
   digestBold: {
     fontFamily: typography.h3.fontFamily,
@@ -116,9 +96,9 @@ function createStyles(colors: AppColors) {
   },
   digestTrack: {
     flex: 1,
-    height: 8,
+    height: 6,
     borderRadius: radius.full,
-    backgroundColor: colors.primaryContainerTrack,
+    backgroundColor: colors.surfaceMuted,
     overflow: 'hidden',
   },
   digestFill: {
@@ -126,9 +106,9 @@ function createStyles(colors: AppColors) {
     borderRadius: radius.full,
   },
   digestDelta: {
-    fontFamily: typography.score.fontFamily,
-    fontSize: 13,
-    color: colors.onPrimaryContainerMuted,
+    ...typography.caption,
+    color: colors.textSecondary,
+    fontFamily: typography.h3.fontFamily,
   },
   section: {
     gap: spacing.lg,
@@ -138,10 +118,7 @@ function createStyles(colors: AppColors) {
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  sectionTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
+  sectionTitle: sectionTitleStyle(colors),
   periodToggle: {
     flexDirection: 'row',
     backgroundColor: colors.periodTrack,
@@ -156,17 +133,15 @@ function createStyles(colors: AppColors) {
     overflow: 'hidden',
   },
   periodBtnActive: {
-    ...shadows.sm,
+    backgroundColor: colors.primary,
   },
   periodText: {
-    ...typography.label,
+    ...typography.caption,
     color: colors.textSecondary,
-    textTransform: 'none',
-    fontSize: 11,
+    fontFamily: typography.h3.fontFamily,
   },
   periodTextActive: {
     color: colors.textInverse,
-    fontFamily: typography.h3.fontFamily,
   },
   concernList: {
     gap: spacing.md,
@@ -177,9 +152,9 @@ function createStyles(colors: AppColors) {
     gap: 2,
   },
   viewAllText: {
-    ...typography.label,
+    ...typography.body,
     color: colors.primary,
-    textTransform: 'none',
+    fontFamily: typography.h3.fontFamily,
   },
   timelineScroll: {
     gap: spacing.lg,
@@ -225,33 +200,24 @@ export function ProgressScreen() {
         showsVerticalScrollIndicator={false}
       >
         <Reveal index={0} style={styles.digest}>
-          <MaterialCommunityIcons
-            name="auto-fix"
-            size={72}
-            color={colors.onPrimaryContainerMuted}
-            style={styles.digestWatermark}
-          />
-          <View style={styles.digestContent}>
-            <View style={styles.digestLabelRow}>
-              <MaterialCommunityIcons name="brain" size={16} color={colors.onPrimaryContainerMuted} />
-              <Text style={styles.digestLabel}>{t('progress.weeklyDigest')}</Text>
+          <View style={styles.digestLabelRow}>
+            <MaterialCommunityIcons name="chart-timeline-variant" size={16} color={colors.textSecondary} />
+            <Text style={styles.digestLabel}>{t('progress.weeklyDigest')}</Text>
+          </View>
+          <Text style={styles.digestBody}>{weeklyDigest.body}</Text>
+          <View style={styles.digestBarRow}>
+            <View style={styles.digestTrack}>
+              <View
+                style={[
+                  styles.digestFill,
+                  {
+                    width: `${weeklyDigest.adherencePercent}%`,
+                    backgroundColor: colors.primary,
+                  },
+                ]}
+              />
             </View>
-            <Text style={styles.digestBody}>{weeklyDigest.body}</Text>
-            <View style={styles.digestBarRow}>
-              <View style={styles.digestTrack}>
-                <LinearGradient
-                  colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
-                  locations={[0, 0.48, 1]}
-                  start={{ x: 0, y: 0.5 }}
-                  end={{ x: 1, y: 0.5 }}
-                  style={[
-                    styles.digestFill,
-                    { width: `${weeklyDigest.adherencePercent}%` },
-                  ]}
-                />
-              </View>
-              <Text style={styles.digestDelta}>{weeklyDigest.deltaLabel}</Text>
-            </View>
+            <Text style={styles.digestDelta}>{weeklyDigest.deltaLabel}</Text>
           </View>
         </Reveal>
 
@@ -267,25 +233,9 @@ export function ProgressScreen() {
                     onPress={() => setPeriod(p.id)}
                     style={[styles.periodBtn, active && styles.periodBtnActive]}
                   >
-                    {active ? (
-                      <LinearGradient
-                        colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.ctaGradientEnd]}
-                        locations={[0, 0.48, 1]}
-                        start={{ x: 0, y: 0.5 }}
-                        end={{ x: 1, y: 0.5 }}
-                        style={{
-                          paddingHorizontal: spacing.md,
-                          paddingVertical: spacing.xs,
-                          borderRadius: radius.full,
-                        }}
-                      >
-                        <Text style={[styles.periodText, styles.periodTextActive]}>
-                          {t(p.labelKey)}
-                        </Text>
-                      </LinearGradient>
-                    ) : (
-                      <Text style={styles.periodText}>{t(p.labelKey)}</Text>
-                    )}
+                    <Text style={[styles.periodText, active && styles.periodTextActive]}>
+                      {t(p.labelKey)}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -302,14 +252,7 @@ export function ProgressScreen() {
           <Text style={styles.sectionTitle}>{t('progress.concernTrends')}</Text>
           <View style={styles.concernList}>
             {concernTrends.map((c) => (
-              <ConcernTrendRow
-                key={c.id}
-                concern={{
-                  ...c,
-                  name: t(CONCERN_NAME_KEYS[c.id] ?? 'progress.concerns.hydration'),
-                  status: t(STATUS_KEYS[c.status] ?? 'progress.status.improving'),
-                }}
-              />
+              <ConcernTrendRow key={c.id} concern={c} />
             ))}
           </View>
         </Reveal>

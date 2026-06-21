@@ -36,7 +36,7 @@ export function getCaptureLabelKey(stepIndex: number): TranslationKey {
 export const CAPTURE_STEP_COUNT = CAPTURE_POSE_SEQUENCE.length;
 
 /** Brief pause between poses after a photo is taken */
-export const POSE_TRANSITION_MS = 650;
+export const POSE_TRANSITION_MS = 420;
 
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

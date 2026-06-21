@@ -19,6 +19,7 @@ import { PROFILE_MENU, type ProfileMenuItem } from '@/screens/profile/profileMoc
 import type { ScanTip } from '@/screens/scan/scanGuideContent';
 
 const MENU_KEYS: Record<string, TranslationKey> = {
+  upgrade: 'profile.menu.upgrade',
   edit: 'profile.menu.editProfile',
   skin: 'profile.menu.skinProfile',
   notif: 'profile.menu.notificationSettings',

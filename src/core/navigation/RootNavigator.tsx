@@ -27,6 +27,7 @@ import { IngredientDetailScreen } from '@/screens/education/IngredientDetailScre
 import { ScienceLibraryScreen } from '@/screens/education/ScienceLibraryScreen';
 import { EditRoutineScreen } from '@/screens/routine/EditRoutineScreen';
 import { RoutineStepScreen } from '@/screens/routine/RoutineStepScreen';
+import { PaywallScreen } from '@/screens/subscription/PaywallScreen';
 import { AnalyzingScreen } from '@/screens/scan/AnalyzingScreen';
 import { CameraScreen } from '@/screens/scan/CameraScreen';
 import { ScanGuideScreen } from '@/screens/scan/ScanGuideScreen';
@@ -93,6 +94,11 @@ export function RootNavigator() {
         name="Analyzing"
         component={AnalyzingScreen}
         options={{ animation: 'fade', contentStyle: { backgroundColor: colors.background }, gestureEnabled: false }}
+      />
+      <Stack.Screen
+        name="Paywall"
+        component={PaywallScreen}
+        options={{ animation: 'slide_from_right', contentStyle: screenBg, gestureEnabled: false }}
       />
       <Stack.Screen
         name="SkinReport"

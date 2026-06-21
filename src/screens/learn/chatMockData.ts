@@ -1,9 +1,7 @@
-export type ChatMessage = {
-  id: string;
-  role: 'user' | 'assistant';
-  text: string;
-  showInsight?: boolean;
-};
+import type { ChatMessage } from '@/types/chat';
+import type { useTranslation } from '@/i18n/useTranslation';
+
+export type { ChatMessage };
 
 export const SUGGESTED_PROMPTS = [
   "What's causing my acne?",
@@ -30,43 +28,31 @@ export const INITIAL_CHAT_MESSAGES: ChatMessage[] = [
   },
 ];
 
-export function getMockAssistantReply(
+export function getLocalizedChatReply(
   userText: string,
+  t: ReturnType<typeof useTranslation>['t'],
 ): Pick<ChatMessage, 'text' | 'showInsight'> {
   const lower = userText.toLowerCase();
 
   if (lower.includes('acne') || lower.includes('breakout')) {
-    return {
-      text: 'Your latest scan flagged mild congestion on the chin and forehead. Consistent evening cleansing, a BHA 2–3× weekly, and non-comedogenic moisturizer often help. If breakouts worsen or are painful, see a dermatologist.',
-      showInsight: true,
-    };
+    return { text: t('chat.replyAcne'), showInsight: true };
   }
-
   if (lower.includes('spf') || lower.includes('sun') || lower.includes('uv')) {
-    return {
-      text: 'Yes — daily SPF is essential, even on cloudy days. For combination skin, a lightweight mineral or hybrid SPF 30+ works well under makeup. Reapply every 2 hours if you are outdoors.',
-      showInsight: true,
-    };
+    return { text: t('chat.replySpf'), showInsight: true };
   }
-
   if (lower.includes('routine') || lower.includes('morning') || lower.includes('evening')) {
-    return {
-      text: 'Your morning routine should focus on cleanse → antioxidant (vitamin C) → moisturizer → SPF. Evening: cleanse → treatment (retinol on alternate nights) → barrier-support moisturizer. I can walk through each step if you tell me what products you use.',
-    };
+    return { text: t('chat.replyRoutine') };
   }
-
   if (
     (lower.includes('retinol') && lower.includes('vitamin')) ||
     lower.includes('mix') ||
     lower.includes('together')
   ) {
     return {
-      text: "It's best to separate retinol and vitamin C: vitamin C in the morning, retinol at night. Layering both at once can increase irritation, especially on combination skin.",
+      text: t('chat.replyRetinolVitaminC'),
       showInsight: true,
     };
   }
 
-  return {
-    text: 'Thanks for your question. Based on your scan and combination skin profile, I recommend keeping routines simple and consistent for 4–6 weeks before changing actives. What specific concern would you like to focus on?',
-  };
+  return { text: t('chat.replyFallback') };
 }

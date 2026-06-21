@@ -63,3 +63,13 @@ export async function getScanById(
   const history = await loadScanHistory(userScope);
   return history.find((s) => s.id === id) ?? null;
 }
+
+export async function deleteScanRecord(
+  id: string,
+  userScope?: string,
+): Promise<StoredScanRecord[]> {
+  const history = await loadScanHistory(userScope);
+  const next = history.filter((s) => s.id !== id);
+  await saveScanHistory(next, userScope);
+  return next;
+}

@@ -1,6 +1,7 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
@@ -16,8 +17,10 @@ import {
   View,
 } from 'react-native';
 import Animated, {
+  Easing,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
@@ -34,25 +37,18 @@ import { FaceScanGuide } from '@/components/scan/FaceScanGuide';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
-import { CAPTURE_POSE_SEQUENCE } from '@/components/scan/facePoseScan';
+import { CAPTURE_POSE_SEQUENCE, getCapturePhase } from '@/components/scan/facePoseScan';
 import {
   CAPTURE_STEP_COUNT,
   delay,
+  getCaptureHintKey,
   getCompletedPoses,
   getCurrentCapturePose,
   POSE_TRANSITION_MS,
   type CapturePhotos,
 } from '@/screens/scan/cameraCaptureFlow';
 import type { AngleImageUris } from '@/types/scanPipeline';
-import {
-  getPoseGuidanceKey,
-  waitForPoseMatch,
-} from '@/screens/scan/waitForPoseMatch';
 import { startScanFromGallery } from '@/screens/scan/startScanFromGallery';
-import {
-  analyzeFacePoseFromBase64,
-  analyzeFacePoseFromUri,
-} from '@/services/scan/facePoseDetection';
 import type { AppColors } from '@/theme/palettes';
 import {
   glow,
@@ -127,42 +123,77 @@ function createStyles(colors: AppColors) {
     zIndex: 5,
   },
   hintPill: {
-    marginBottom: spacing.xl,
-    borderRadius: radius.full,
+    marginBottom: spacing.lg,
+    borderRadius: radius.xl,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: 'rgba(215,255,233,0.18)',
+    shadowColor: colors.primaryLight,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.2,
+    shadowRadius: 22,
   },
   hintInner: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    backgroundColor: colors.glassFill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    backgroundColor: 'rgba(4,10,9,0.68)',
   },
-  hintText: {
-    ...typography.label,
-    color: colors.onPrimaryContainer,
-    letterSpacing: 1.2,
-    textTransform: 'none',
-    fontSize: 13,
-    textAlign: 'center',
-  },
-  stepBadge: {
-    marginTop: spacing.sm,
-    borderRadius: radius.full,
+  consoleIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  consoleCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  consoleKicker: {
+    fontFamily: typography.score.fontFamily,
+    fontSize: 10,
+    lineHeight: 14,
+    color: colors.primaryLight,
+    letterSpacing: 1.5,
+    textTransform: 'uppercase',
+  },
+  consoleTitle: {
+    ...typography.h3,
+    color: colors.onPrimaryContainer,
+    lineHeight: 23,
+    letterSpacing: 0,
+  },
+  hintText: {
+    ...typography.caption,
+    color: 'rgba(234,247,239,0.66)',
+    letterSpacing: 0,
+    textTransform: 'none',
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  stepBadge: {
+    marginTop: spacing.xs,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(215,255,233,0.16)',
   },
   stepBadgeInner: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
-    backgroundColor: colors.glassFill,
+    backgroundColor: 'rgba(4,10,9,0.52)',
   },
   stepBadgeText: {
     fontFamily: typography.score.fontFamily,
     fontSize: 11,
-    color: colors.primaryLight,
-    letterSpacing: 0.8,
+    color: colors.onPrimaryContainer,
+    letterSpacing: 1.2,
   },
   footer: {
     position: 'absolute',
@@ -182,63 +213,82 @@ function createStyles(colors: AppColors) {
     width: 84,
     height: 84,
     borderRadius: 42,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.9)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.55)',
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.28)',
+    overflow: 'hidden',
     ...glow(colors.ctaGlow, 'lg'),
+  },
+  shutterPulse: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: radius.full,
+    backgroundColor: colors.ctaTint,
+    borderWidth: 1,
+    borderColor: colors.ctaGradientStart,
   },
   shutterInner: {
     width: 66,
     height: 66,
     borderRadius: 33,
-    backgroundColor: colors.textInverse,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: colors.ctaGradientMid,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.76)',
   },
   shutterCore: {
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: colors.textInverse,
+    backgroundColor: 'rgba(255,255,255,0.92)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   shutterDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.ctaGradientStart,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.primaryDark,
   },
   shutterDisabled: {
     opacity: 0.75,
   },
   modeTrack: {
     flexDirection: 'row',
-    gap: spacing.xl,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
+    gap: spacing.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
     borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.glassBorder,
+    borderColor: 'rgba(255,255,255,0.14)',
     backgroundColor: 'rgba(0,0,0,0.35)',
     overflow: 'hidden',
     maxWidth: '100%',
   },
   modeTrackCompact: {
-    gap: spacing.lg,
-    paddingHorizontal: spacing.lg,
+    gap: spacing.xs,
+    paddingHorizontal: spacing.xs,
   },
   modeItem: {
     alignItems: 'center',
+    justifyContent: 'center',
     minWidth: 64,
+    minHeight: 34,
+    paddingHorizontal: spacing.md,
+    borderRadius: radius.full,
+  },
+  modeItemActive: {
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   modeLabel: {
     ...typography.label,
-    color: 'rgba(255,255,255,0.45)',
-    letterSpacing: 1.2,
+    color: 'rgba(255,255,255,0.48)',
+    letterSpacing: 0.8,
   },
   modeLabelActive: {
     color: colors.onPrimaryContainer,
@@ -284,19 +334,30 @@ export function CameraScreen() {
   const [capturePhotos, setCapturePhotos] = useState<CapturePhotos>({});
   const [stepJustCaptured, setStepJustCaptured] = useState(false);
   const [isSnapping, setIsSnapping] = useState(false);
-  const [poseAligned, setPoseAligned] = useState(false);
-  const [poseProgress, setPoseProgress] = useState(0);
-  const [poseGuidanceKey, setPoseGuidanceKey] =
-    useState<TranslationKey>('scan.captureFrontReady');
-  const scanCancelRef = useRef(false);
-  const samplingRef = useRef(false);
-  const hapticStepRef = useRef(-1);
+  const scanPhotosRef = useRef<CapturePhotos>({});
 
   const flareOpacity = useSharedValue(0);
+  const shutterPulse = useSharedValue(0);
 
   const flareStyle = useAnimatedStyle(() => ({
     opacity: flareOpacity.value,
   }));
+
+  const shutterPulseStyle = useAnimatedStyle(() => ({
+    opacity: 0.18 + shutterPulse.value * 0.24,
+    transform: [{ scale: 0.82 + shutterPulse.value * 0.28 }],
+  }));
+
+  useEffect(() => {
+    shutterPulse.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      false,
+    );
+  }, [shutterPulse]);
 
   const triggerFlare = useCallback(() => {
     flareOpacity.value = withSequence(
@@ -328,45 +389,14 @@ export function CameraScreen() {
     [navigation],
   );
 
-  const cancelScan = useCallback(() => {
-    scanCancelRef.current = true;
-  }, []);
-
   const resetScanSession = useCallback(() => {
-    cancelScan();
     setScanActive(false);
     setCaptureStep(0);
     setCapturePhotos({});
+    scanPhotosRef.current = {};
     setStepJustCaptured(false);
     setIsSnapping(false);
-    setPoseAligned(false);
-    setPoseProgress(0);
-    setPoseGuidanceKey('scan.captureFrontReady');
-    hapticStepRef.current = -1;
     setCapturing(false);
-  }, [cancelScan]);
-
-  useEffect(() => () => cancelScan(), [cancelScan]);
-
-  const samplePoseFromCamera = useCallback(async () => {
-    if (samplingRef.current) return null;
-    samplingRef.current = true;
-    try {
-      const photo = await cameraRef.current?.takePictureAsync({
-        quality: 0.14,
-        base64: true,
-        shutterSound: false,
-      });
-      if (photo?.base64) {
-        return analyzeFacePoseFromBase64(photo.base64);
-      }
-      if (!photo?.uri) return null;
-      return analyzeFacePoseFromUri(photo.uri);
-    } catch {
-      return null;
-    } finally {
-      samplingRef.current = false;
-    }
   }, []);
 
   const takeScanPhoto = useCallback(async (): Promise<string | null> => {
@@ -385,106 +415,75 @@ export function CameraScreen() {
     }
   }, [flashOn, triggerFlare]);
 
-  const runAutoScan = useCallback(async () => {
-    scanCancelRef.current = false;
+  const selectCaptureStep = useCallback((pose: FacePoseId) => {
+    const stepIndex = CAPTURE_POSE_SEQUENCE.indexOf(pose);
+    if (stepIndex < 0) return;
+
     setScanActive(true);
-    setCaptureStep(0);
-    setCapturePhotos({});
+    setCaptureStep(stepIndex);
     setStepJustCaptured(false);
+  }, []);
+
+  /** Shutter tap = capture the selected step; step dots jump between angles. */
+  const captureScanStep = useCallback(async () => {
+    if (capturing || isSnapping) return;
+
+    if (!scanActive) {
+      setScanActive(true);
+      setCaptureStep(0);
+      setCapturePhotos({});
+      scanPhotosRef.current = {};
+      setStepJustCaptured(false);
+    }
+
+    const step = captureStep;
+    const pose = getCurrentCapturePose(step);
+
     setCapturing(true);
-
-    const photos: CapturePhotos = {};
-
     try {
-      for (let step = 0; step < CAPTURE_STEP_COUNT; step++) {
-        if (scanCancelRef.current) return;
+      const uri = await takeScanPhoto();
+      if (!uri) {
+        Alert.alert(t('scan.analysisFailed'), t('scan.captureFailed'));
+        return;
+      }
 
-        const pose = getCurrentCapturePose(step);
-        setCaptureStep(step);
-        setStepJustCaptured(false);
-        setPoseAligned(false);
-        setPoseProgress(0);
-        hapticStepRef.current = -1;
-        setPoseGuidanceKey('scan.captureFrontReady');
-        if (step > 0) {
-          await delay(380);
-        } else {
-          await delay(480);
-        }
-        if (scanCancelRef.current) return;
+      const nextPhotos: CapturePhotos = { ...scanPhotosRef.current, [pose]: uri };
+      scanPhotosRef.current = nextPhotos;
+      setCapturePhotos(nextPhotos);
+      setStepJustCaptured(true);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        const poseReady = await waitForPoseMatch({
-          pose,
-          samplePose: samplePoseFromCamera,
-          shouldCancel: () => scanCancelRef.current,
-          onUpdate: ({ matched, stable, progress, sample }) => {
-            setPoseAligned(matched);
-            setPoseProgress(progress);
-            setPoseGuidanceKey(
-              stable
-                ? 'scan.capturePoseLocked'
-                : getPoseGuidanceKey(pose, sample, progress),
-            );
-
-            if (stable && hapticStepRef.current !== step) {
-              hapticStepRef.current = step;
-              void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }
-          },
-        });
-
-        if (scanCancelRef.current) return;
-        if (!poseReady) {
-          Alert.alert(t('scan.analysisFailed'), t('scan.capturePoseTimeout'));
-          return;
-        }
-
-        const uri = await takeScanPhoto();
-        if (!uri) {
+      const isLastStep = step >= CAPTURE_STEP_COUNT - 1;
+      if (isLastStep) {
+        if (!nextPhotos.front) {
           Alert.alert(t('scan.analysisFailed'), t('scan.captureFailed'));
           return;
         }
-
-        photos[pose] = uri;
-        setCapturePhotos({ ...photos });
-        setStepJustCaptured(true);
-        setPoseProgress(0);
-        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-        const isLastStep = step >= CAPTURE_STEP_COUNT - 1;
-        if (isLastStep) {
-          if (!photos.front) {
-            Alert.alert(t('scan.analysisFailed'), t('scan.captureFailed'));
-            return;
-          }
-          setScanActive(false);
-          await goToAnalyzing(photos);
-          return;
-        }
-
-        await delay(POSE_TRANSITION_MS);
+        setScanActive(false);
+        await goToAnalyzing(nextPhotos);
+        return;
       }
+
+      await delay(POSE_TRANSITION_MS);
+      setStepJustCaptured(false);
+      setCaptureStep(step + 1);
     } catch {
       Alert.alert(t('scan.analysisFailed'), t('scan.captureFailed'));
     } finally {
       setCapturing(false);
-      setScanActive(false);
-      setStepJustCaptured(false);
-      setIsSnapping(false);
     }
-  }, [goToAnalyzing, samplePoseFromCamera, t, takeScanPhoto]);
+  }, [captureStep, capturing, goToAnalyzing, isSnapping, scanActive, t, takeScanPhoto]);
 
   const handleCapture = async () => {
-    if (capturing || mode === 'video') {
-      if (mode === 'video') {
-        Alert.alert(t('scan.modeVideo'), t('scan.videoSoon'));
-      }
+    if (mode === 'video') {
+      Alert.alert(t('scan.modeVideo'), t('scan.videoSoon'));
       return;
     }
 
+    if (capturing || isSnapping) return;
+
     if (mode === 'scan') {
-      if (scanActive) return;
-      await runAutoScan();
+      await captureScanStep();
       return;
     }
 
@@ -528,14 +527,20 @@ export function CameraScreen() {
   const currentCapturePose: FacePoseId | undefined =
     mode === 'scan' ? getCurrentCapturePose(scanActive ? captureStep : 0) : undefined;
   const completedCapturePoses = getCompletedPoses(capturePhotos);
-  const scanHintKey = !scanActive
+  const scanHintKey: TranslationKey = !scanActive
     ? 'scan.captureTapToStart'
     : isSnapping
       ? 'scan.captureScanning'
       : stepJustCaptured
         ? 'scan.captureStepDone'
-        : poseGuidanceKey;
-  const shutterBusy = capturing || (mode === 'scan' && scanActive);
+        : getCaptureHintKey(captureStep);
+  const shutterBusy = capturing || isSnapping;
+  const currentPhase = getCapturePhase(currentCapturePose ?? 'front');
+  const activeModeLabelKey = MODES.find((item) => item.id === mode)?.labelKey ?? 'scan.modeScan';
+  const consoleIcon =
+    mode === 'scan' ? 'face-recognition' : mode === 'selfie' ? 'camera-outline' : 'video-outline';
+  const consoleTitle = mode === 'scan' ? t(currentPhase.labelKey) : t(activeModeLabelKey);
+  const consoleHint = mode === 'scan' ? t(scanHintKey) : t('scan.holdStill');
 
   if (!permission) {
     return (
@@ -647,18 +652,36 @@ export function CameraScreen() {
             paddingHorizontal: spacing.base,
           },
         ]}
-        pointerEvents="none"
+        pointerEvents="box-none"
       >
         <View style={[styles.hintPill, { maxWidth: scanLayout.hintMaxWidth, width: '100%' }]}>
           <BlurView intensity={48} tint="dark" style={styles.hintInner}>
-            <Text
-              style={[styles.hintText, { fontSize: scanLayout.hintFontSize }]}
-              numberOfLines={2}
-              adjustsFontSizeToFit
-              minimumFontScale={0.85}
+            <LinearGradient
+              colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.primaryLight]}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.consoleIcon}
             >
-              {mode === 'scan' ? t(scanHintKey) : t('scan.holdStill')}
-            </Text>
+              <MaterialCommunityIcons
+                name={consoleIcon}
+                size={22}
+                color={colors.textInverse}
+              />
+            </LinearGradient>
+            <View style={styles.consoleCopy}>
+              <Text style={styles.consoleKicker} numberOfLines={1}>
+                {t(activeModeLabelKey)}
+              </Text>
+              <Text style={styles.consoleTitle} numberOfLines={1} adjustsFontSizeToFit>
+                {consoleTitle}
+              </Text>
+              <Text
+                style={[styles.hintText, { fontSize: Math.max(11, scanLayout.hintFontSize - 1) }]}
+                numberOfLines={1}
+              >
+                {consoleHint}
+              </Text>
+            </View>
           </BlurView>
         </View>
         {mode === 'scan' ? (
@@ -666,8 +689,7 @@ export function CameraScreen() {
             <FaceScanGuide
               pose={currentCapturePose}
               completedPoses={completedCapturePoses}
-              poseAligned={scanActive && poseAligned}
-              poseProgress={scanActive ? poseProgress : 0}
+              onStepPress={capturing || isSnapping ? undefined : selectCaptureStep}
               width={scanLayout.oval.width}
               height={scanLayout.oval.height}
             />
@@ -717,6 +739,7 @@ export function CameraScreen() {
             onPress={() => void handleCapture()}
             disabled={shutterBusy}
           >
+            <Animated.View pointerEvents="none" style={[styles.shutterPulse, shutterPulseStyle]} />
             <View
               style={[
                 styles.shutterInner,
@@ -727,7 +750,11 @@ export function CameraScreen() {
                 },
               ]}
             >
-              <View
+              <LinearGradient
+                colors={[colors.ctaGradientStart, colors.ctaGradientMid, colors.primaryLight]}
+                locations={[0, 0.5, 1]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={[
                   styles.shutterCore,
                   {
@@ -738,7 +765,7 @@ export function CameraScreen() {
                 ]}
               >
                 {shutterBusy ? (
-                  <ActivityIndicator color={colors.primary} size="small" />
+                  <ActivityIndicator color={colors.textInverse} size="small" />
                 ) : (
                   <View
                     style={[
@@ -751,7 +778,7 @@ export function CameraScreen() {
                     ]}
                   />
                 )}
-              </View>
+              </LinearGradient>
             </View>
           </Pressable>
 
@@ -776,7 +803,7 @@ export function CameraScreen() {
             return (
               <Pressable
                 key={item.id}
-                style={styles.modeItem}
+                style={[styles.modeItem, active && styles.modeItemActive]}
                 onPress={() => {
                   if (item.id === 'video') {
                     Alert.alert(t('scan.modeVideo'), t('scan.videoSoon'));

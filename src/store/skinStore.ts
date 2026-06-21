@@ -2,7 +2,8 @@ import { create } from 'zustand';
 
 import { recordScanActivity } from '@/core/storage/activityStorage';
 import { notifyScanResultReady } from '@/services/notifications/notificationService';
-import { appendScanRecord, loadScanHistory } from '@/core/storage/scanHistoryStorage';
+import { appendScanRecord, deleteScanRecord, loadScanHistory } from '@/core/storage/scanHistoryStorage';
+import { deleteScanImageFiles } from '@/services/scan/scanImageStorage';
 import type { SkinAnalysisResult } from '@/types/skinAnalysis';
 import type { AngleImageUris, StoredScanRecord } from '@/types/scanPipeline';
 
@@ -18,6 +19,7 @@ type SkinStore = {
   setAnalyzing: (value: boolean) => void;
   setAnalysisResult: (result: SkinAnalysisResult) => void;
   addAnalysisResult: (record: StoredScanRecord) => Promise<void>;
+  removeScanRecord: (id: string) => Promise<void>;
   loadHistory: () => Promise<void>;
   resetForUserSwitch: () => void;
   getScanById: (id: string) => StoredScanRecord | undefined;
@@ -49,6 +51,20 @@ export const useSkinStore = create<SkinStore>((set, get) => ({
     set({
       latestAnalysis: record,
       analysisHistory: history,
+    });
+  },
+
+  removeScanRecord: async (id) => {
+    const record = get().getScanById(id);
+    if (!record) return;
+
+    const history = await deleteScanRecord(id);
+    await deleteScanImageFiles(record);
+    set({
+      analysisHistory: history,
+      latestAnalysis: history[0] ?? null,
+      currentScanImageUri:
+        get().currentScanImageUri === record.imageUri ? history[0]?.imageUri ?? null : get().currentScanImageUri,
     });
   },
 

@@ -12,6 +12,7 @@ export type RootStackParamList = {
   ScanGuide: undefined;
   Camera: undefined;
   Analyzing: { imageUri: string };
+  Paywall: { result?: SkinAnalysisResult; mode?: 'checkout' | 'manage' } | undefined;
   SkinReport: { result: SkinAnalysisResult };
   ReportDetail: {
     concernId: string;

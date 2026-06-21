@@ -189,6 +189,7 @@ export function SkinProfileScreen() {
   const profile = useLocalizedSkinProfile();
   const displayName = useUserDisplayName();
   const getScanById = useSkinStore((s) => s.getScanById);
+  const removeScanRecord = useSkinStore((s) => s.removeScanRecord);
 
   const retakeQuiz = () => {
     navigation.push('SkinQuiz', displayName ? { displayName } : undefined);
@@ -205,6 +206,19 @@ export function SkinProfileScreen() {
       return;
     }
     Alert.alert(t('skinProfile.scanHistory'), t('skinProfile.scanNotFound'));
+  };
+
+  const confirmDeleteScan = (scanId: string, dateLabel: string) => {
+    Alert.alert(t('skinProfile.deleteScanTitle'), t('skinProfile.deleteScanMessage', { date: dateLabel }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.delete'),
+        style: 'destructive',
+        onPress: () => {
+          void removeScanRecord(scanId);
+        },
+      },
+    ]);
   };
 
   return (
@@ -336,6 +350,7 @@ export function SkinProfileScreen() {
                   key={entry.id}
                   entry={entry}
                   onPress={() => openScanReport(entry.id)}
+                  onDelete={() => confirmDeleteScan(entry.id, entry.dateLabel)}
                 />
               ))}
             </View>

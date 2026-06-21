@@ -23,6 +23,7 @@ import {
   ANALYZING_STAGES,
 } from '@/screens/scan/analyzingContent';
 import { scanErrorHintKey, scanErrorTitleKey } from '@/screens/scan/scanAnalysisErrors';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import type { AppColors } from '@/theme/palettes';
 import {
   fontFamilies,
@@ -234,14 +235,19 @@ export function AnalyzingScreen() {
 
   const imageUri = route.params?.imageUri ?? ANALYZING_PLACEHOLDER_IMAGE;
   const { progress, error, result, retry } = useSkinAnalysis(imageUri);
+  const isPremium = useSubscriptionStore((s) => s.isPremium);
+  const subscriptionHydrated = useSubscriptionStore((s) => s.hydrated);
 
   const [factIndex, setFactIndex] = useState(0);
 
   useEffect(() => {
-    if (result) {
+    if (!result || !subscriptionHydrated) return;
+    if (isPremium) {
       navigation.replace('SkinReport', { result });
+    } else {
+      navigation.replace('Paywall', { result });
     }
-  }, [result, navigation]);
+  }, [result, navigation, isPremium, subscriptionHydrated]);
 
   useEffect(() => {
     const interval = setInterval(() => {

@@ -33,10 +33,11 @@ function createStyles(colors: AppColors) {
       paddingHorizontal: spacing.xs,
     },
     title: {
-      ...typography.h2,
+      ...typography.h3,
+      fontSize: 20,
       color: colors.textPrimary,
       textAlign: 'center',
-      letterSpacing: -0.3,
+      letterSpacing: -0.2,
     },
     subtitle: {
       ...typography.caption,

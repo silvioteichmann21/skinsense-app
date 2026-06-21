@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" fill="none">
+  <defs>
+    <radialGradient id="appBg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(298 208) rotate(52) scale(980)">
+      <stop offset="0" stop-color="#F9FFF8"/>
+      <stop offset="0.52" stop-color="#DFF5E8"/>
+      <stop offset="1" stop-color="#123629"/>
+    </radialGradient>
+    <radialGradient id="markBackdrop" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(384 320) rotate(48) scale(624)">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.98"/>
+      <stop offset="0.48" stop-color="#EAF7EF" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#153B2C" stop-opacity="0.92"/>
+    </radialGradient>
+    <linearGradient id="markDrop" x1="368" y1="240" x2="752" y2="800" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E7FFFA"/>
+      <stop offset="0.46" stop-color="#8EE8D6"/>
+      <stop offset="1" stop-color="#1E7669"/>
+    </linearGradient>
+    <linearGradient id="markLeaf" x1="296" y1="288" x2="632" y2="784" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#DBF9C9"/>
+      <stop offset="0.5" stop-color="#73C88B"/>
+      <stop offset="1" stop-color="#1F5D42"/>
+    </linearGradient>
+    <linearGradient id="markFace" x1="488" y1="320" x2="640" y2="704" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFDF3"/>
+      <stop offset="1" stop-color="#F0E4C9"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-80" y="-80" width="1184" height="1184" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="34" stdDeviation="42" flood-color="#06110D" flood-opacity="0.28"/>
+    </filter>
+    <filter id="markShadow" x="104" y="104" width="816" height="840" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="26" stdDeviation="28" flood-color="#07140F" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#appBg)"/>
+  <g filter="url(#cardShadow)">
+    <rect x="78" y="78" width="868" height="868" rx="192" fill="#FFF9EA" opacity="0.6"/>
+    <rect x="78" y="78" width="868" height="868" rx="192" stroke="#FFFFFF" stroke-opacity="0.82" stroke-width="8"/>
+  </g>
+  <g filter="url(#markShadow)">
+    <circle cx="512" cy="512" r="344" fill="#52B788" opacity="0.14"/>
+    <circle cx="512" cy="512" r="304" fill="url(#markBackdrop)" stroke="#FFFFFF" stroke-opacity="0.54" stroke-width="10"/>
+    <path d="M529.6 238.4C639.2 372 734.4 479.2 734.4 610.4C734.4 737.6 643.2 824 522.4 824C404.8 824 312.8 741.6 312.8 611.2C312.8 479.2 416.8 368.8 529.6 238.4Z" fill="url(#markDrop)" stroke="#D8FFF8" stroke-width="10.8"/>
+    <path d="M520.8 243.2C388 294.4 296.8 410.4 289.6 548.8C282.4 688.8 380.8 788.8 541.6 806.4C475.2 709.6 460 599.2 496 476C520.8 390.4 552.8 310.4 520.8 243.2Z" fill="url(#markLeaf)" stroke="#E7FFD8" stroke-width="10.8"/>
+    <path d="M524 299.2C472 356 444.8 420 444.8 486.4C444.8 542.4 475.2 577.6 522.4 607.2C554.4 627.2 556 668.8 495.2 708C604.8 700.8 675.2 644 675.2 563.2C675.2 512 628 483.2 600.8 437.6C572 390.4 560.8 334.4 524 299.2Z" fill="url(#markFace)" opacity="0.98"/>
+    <path d="M483.2 387.2C408 464.8 367.2 558.4 361.6 668.8" stroke="#E6F6D8" stroke-width="13.2" stroke-linecap="round" opacity="0.72"/>
+    <path d="M552.8 458.4C576 472.8 601.6 479.2 632 476.8" stroke="#244F48" stroke-width="12" stroke-linecap="round" opacity="0.55"/>
+    <path d="M537.6 579.2C568 596 598.4 596 629.6 579.2" stroke="#244F48" stroke-width="10.8" stroke-linecap="round" opacity="0.4"/>
+    <path d="M708.8 291.2L724.8 325.6L760 340.8L724.8 356.8L708.8 391.2L692.8 356.8L658.4 340.8L692.8 325.6L708.8 291.2Z" fill="#F5C842" opacity="0.9"/>
+    <path d="M344.8 278.4L355.2 300L377.6 310.4L355.2 320L344.8 342.4L334.4 320L312 310.4L334.4 300L344.8 278.4Z" fill="#FFFFFF" opacity="0.76"/>
+  </g>
+</svg>

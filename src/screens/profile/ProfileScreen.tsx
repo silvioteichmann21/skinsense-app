@@ -18,13 +18,13 @@ import type { TranslationKey } from '@/i18n/useTranslation';
 import { useActivityStats } from '@/hooks/useActivityStats';
 import { useUserDisplayName } from '@/hooks/useUserDisplayName';
 import { useAuthStore } from '@/store/authStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import { useSkinStore } from '@/store/skinStore';
 import type { AppColors } from '@/theme/palettes';
 import {
-  glow,
+  flatCard,
   layout,
   radius,
-  shadows,
   spacing,
   typography,
   useAppTheme,
@@ -52,11 +52,11 @@ function createProfileStyles(colors: AppColors) {
     },
     avatarWrap: {
       marginBottom: spacing.lg,
-      ...glow(colors.primaryGlow, 'md'),
       borderRadius: radius.full,
     },
     name: {
-      ...typography.h2,
+      ...typography.h3,
+      fontSize: 20,
       color: colors.textPrimary,
       textAlign: 'center',
       maxWidth: '100%',
@@ -76,12 +76,10 @@ function createProfileStyles(colors: AppColors) {
       marginBottom: spacing.xl,
     },
     badge: {
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.sm,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.xs,
       borderRadius: radius.full,
-      backgroundColor: colors.surfaceAlt,
-      borderWidth: 1,
-      borderColor: colors.border,
+      backgroundColor: colors.surfaceMuted,
     },
     badgeText: {
       ...typography.label,
@@ -90,14 +88,10 @@ function createProfileStyles(colors: AppColors) {
       fontSize: 12,
     },
     stats: {
+      ...flatCard(colors, false),
       flexDirection: 'row',
-      backgroundColor: colors.surfaceElevated,
-      borderRadius: layout.listCardRadius,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      paddingVertical: spacing.xl,
+      paddingVertical: spacing.lg,
       marginBottom: spacing.xl,
-      ...shadows.md,
     },
     statCell: {
       flex: 1,
@@ -129,13 +123,9 @@ function createProfileStyles(colors: AppColors) {
       letterSpacing: 0.8,
     },
     menuCard: {
-      borderRadius: layout.listCardRadius,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      backgroundColor: colors.surfaceElevated,
+      ...flatCard(colors, false),
       overflow: 'hidden',
       marginBottom: spacing.xl,
-      ...shadows.md,
     },
     deleteBtn: {
       alignSelf: 'center',
@@ -164,8 +154,25 @@ export function ProfileScreen() {
   const displayName = useUserDisplayName() || t('profile.guestName');
   const { totalScans, streakDays, adherencePercent } = useActivityStats();
   const latestScan = useSkinStore((s) => s.latestAnalysis);
+  const isPremium = useSubscriptionStore((s) => s.isPremium);
+
+  const displayMenu = menu.map((item) =>
+    item.action === 'upgrade'
+      ? {
+          ...item,
+          label: isPremium ? t('profile.menu.manageSubscription') : t('profile.menu.upgrade'),
+        }
+      : item,
+  );
 
   const onMenuPress = (item: (typeof menu)[number]) => {
+    if (item.action === 'upgrade') {
+      navigation.navigate('Paywall', {
+        result: isPremium ? undefined : latestScan ?? undefined,
+        mode: isPremium ? 'manage' : 'checkout',
+      });
+      return;
+    }
     if (item.action === 'editProfile') {
       navigation.navigate('EditProfile');
       return;
@@ -306,7 +313,7 @@ export function ProfileScreen() {
         </View>
 
         <View style={styles.menuCard}>
-          {menu.map((item, index) => (
+          {displayMenu.map((item, index) => (
             <ProfileMenuRow
               key={item.id}
               item={item}

@@ -1,0 +1,7 @@
+# Supabase local / deploy config — https://supabase.com/docs/guides/functions
+
+[functions.analyze-skin]
+verify_jwt = false
+
+[functions.skin-chat]
+verify_jwt = false

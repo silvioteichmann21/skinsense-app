@@ -33,11 +33,29 @@ const PERIOD_DAYS: Record<TrendPeriod, number> = {
   '180d': 180,
 };
 
-function severityToStatus(severity: ReportConcern['severity']): string {
-  if (severity === 'healthy') return 'Optimal';
-  if (severity === 'low') return 'Calming';
-  if (severity === 'medium') return 'Needs Focus';
-  return 'Improving';
+function concernLabel(t: (key: TranslationKey) => string, id: string, fallback: string): string {
+  const reportKey = `reportData.concerns.${id}.name` as TranslationKey;
+  const reportValue = t(reportKey);
+  if (reportValue !== reportKey) return reportValue;
+
+  const progressKey = `progress.concerns.${id}` as TranslationKey;
+  const progressValue = t(progressKey);
+  return progressValue !== progressKey ? progressValue : fallback;
+}
+
+function severityStatusLabel(
+  t: (key: TranslationKey) => string,
+  severity: ReportConcern['severity'],
+): string {
+  const key: TranslationKey =
+    severity === 'healthy'
+      ? 'progress.status.optimal'
+      : severity === 'low'
+        ? 'progress.status.calming'
+        : severity === 'medium'
+          ? 'progress.status.needsFocus'
+          : 'progress.status.improving';
+  return t(key);
 }
 
 function filterScansByPeriod(scans: StoredScanRecord[], period: TrendPeriod): StoredScanRecord[] {
@@ -74,7 +92,10 @@ function buildScoreTrend(
   };
 }
 
-function buildConcernTrends(scans: StoredScanRecord[]): ConcernTrend[] {
+function buildConcernTrends(
+  scans: StoredScanRecord[],
+  t: (key: TranslationKey) => string,
+): ConcernTrend[] {
   if (!scans.length) return [];
 
   const latest = scans[0];
@@ -93,8 +114,8 @@ function buildConcernTrends(scans: StoredScanRecord[]): ConcernTrend[] {
 
     return {
       id,
-      name: current?.name ?? id,
-      status: severityToStatus(current?.severity ?? 'low'),
+      name: concernLabel(t, id, current?.name ?? id),
+      status: severityStatusLabel(t, current?.severity ?? 'low'),
       icon: meta.icon,
       iconBg: meta.iconBg,
       iconColor: meta.iconColor,
@@ -139,7 +160,7 @@ export function useProgressMetrics(period: TrendPeriod) {
   return useMemo(() => {
     const periodScans = filterScansByPeriod(history, period);
     const scoreTrend = buildScoreTrend(periodScans.length ? periodScans : history, locale);
-    const concernTrends = buildConcernTrends(history);
+    const concernTrends = buildConcernTrends(history, t);
     const milestones = buildMilestones(history.length, streakDays, history[0]?.skinScore ?? null);
 
     const prevWeekAdherence = Math.max(0, adherencePercent - 5);

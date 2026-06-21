@@ -16,5 +16,5 @@ export const motion = {
     bouncy: { damping: 12, stiffness: 200, mass: 0.8 },
   },
   /** Default delay (ms) between staggered list/section entrances. */
-  stagger: 70,
+  stagger: 40,
 } as const;

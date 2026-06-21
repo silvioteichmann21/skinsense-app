@@ -11,7 +11,7 @@ import type { RootStackParamList } from '@/core/navigation/types';
 import { useCommunityReviews } from '@/hooks/useCommunityReviews';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { AppColors } from '@/theme/palettes';
-import { glow, layout, radius, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
+import { flatCard, layout, radius, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -26,15 +26,9 @@ type Props = {
 function createStyles(colors: AppColors, stackActions: boolean, embedded: boolean) {
   return StyleSheet.create({
     card: {
+      ...flatCard(colors),
       marginHorizontal: embedded ? 0 : layout.screenPaddingX,
-      borderRadius: layout.listCardRadius,
-      backgroundColor: colors.surfaceElevated,
-      borderWidth: 1,
-      borderColor: colors.hairline,
-      paddingHorizontal: spacing.xl,
-      paddingVertical: spacing.xl,
-      gap: spacing.lg,
-      ...glow(colors.primaryGlow, 'md'),
+      gap: spacing.md,
     },
     topRow: {
       flexDirection: 'row',
@@ -71,12 +65,10 @@ function createStyles(colors: AppColors, stackActions: boolean, embedded: boolea
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: spacing.sm,
-      paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.md,
+      paddingVertical: spacing.sm,
       borderRadius: radius.md,
-      backgroundColor: colors.surfaceSunken,
-      borderWidth: 1,
-      borderColor: colors.hairline,
+      backgroundColor: colors.surfaceMuted,
     },
     ratingValue: {
       ...typography.h2,

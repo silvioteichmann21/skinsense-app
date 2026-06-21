@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { loadQuizAnswers } from '@/core/storage/quizStorage';
-import { refineAnalysisWithCloud } from '@/services/api/aiAnalyze';
-import { submitScan } from '@/services/api/scans';
 import {
-  FaceScanError,
-  analyzeFaceFromCameraPhoto,
-} from '@/services/ai/faceScanAnalysis';
-import { ON_DEVICE_MODEL_VERSION } from '@/services/ai/skinAnalyzer';
+  analyzeSkinWithGemini,
+  isGeminiAnalyzeAvailable,
+} from '@/services/api/geminiAnalyze';
+import { submitScan } from '@/services/api/scans';
+import { FaceScanError, analyzeFaceFromCameraPhoto } from '@/services/ai/faceScanAnalysis';
+import { useI18n } from '@/i18n/I18nProvider';
 import { persistScanImage } from '@/services/scan/scanImageStorage';
 import { useRoutineStore } from '@/store/routineStore';
 import { useSkinStore } from '@/store/skinStore';
 import type { SkinAnalysisResult } from '@/types/skinAnalysis';
 import type { AnalysisPipelineMeta } from '@/types/scanPipeline';
+import type { PersonalizedRoutine } from '@/types/routine';
 
 import { MIN_ANALYZING_MS } from '@/screens/scan/analyzingContent';
 
@@ -43,6 +44,7 @@ export type UseSkinAnalysisState = {
 };
 
 export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
+  const { locale } = useI18n();
   const [progress, setProgress] = useState(0);
   const [stage, setStage] = useState<PipelineStage | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -67,6 +69,9 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
     setProgress(0);
     useSkinStore.getState().setAnalyzing(true);
 
+    const useGemini = isGeminiAnalyzeAvailable();
+    let routineFromGemini: PersonalizedRoutine | undefined;
+
     try {
       setStage('persist');
       setProgressMonotonic(lerpProgress('persist', 0.2));
@@ -79,45 +84,95 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
       if (runId !== runIdRef.current) return;
 
       const quiz = await loadQuizAnswers();
+      const angleImageUris = useSkinStore.getState().pendingAnglePhotos ?? undefined;
 
-      setStage('local');
-      setProgressMonotonic(lerpProgress('local', 0.3));
-      const local = await analyzeFaceFromCameraPhoto({
-        displayImageUri: storedUri,
-        quiz,
-      });
-      setProgressMonotonic(lerpProgress('local', 1));
-
-      if (runId !== runIdRef.current) return;
-
-      let vector = local.scoreVector;
-      let analysis = local.result;
+      let vector;
+      let analysis;
+      let confidence: number;
+      let modelVersion: string;
       let usedCloudRefine = false;
 
-      if (local.confidence < CLOUD_CONFIDENCE_THRESHOLD) {
+      if (useGemini) {
         setStage('cloud');
-        setProgressMonotonic(lerpProgress('cloud', 0.2));
-        const refined = await refineAnalysisWithCloud({
-          scoreVector: vector,
-          quizContext: quiz,
-          imageUri: storedUri,
+        setProgressMonotonic(lerpProgress('cloud', 0.15));
+
+        try {
+          const gemini = await analyzeSkinWithGemini({
+            frontImageUri: storedUri,
+            angleImageUris,
+            quiz,
+            locale,
+          });
+
+          if (runId !== runIdRef.current) return;
+
+          vector = gemini.scoreVector;
+          analysis = gemini.result;
+          confidence = gemini.confidence;
+          modelVersion = gemini.modelVersion;
+          usedCloudRefine = true;
+          routineFromGemini = gemini.routine;
+          setProgressMonotonic(lerpProgress('cloud', 1));
+        } catch (geminiError) {
+          if (__DEV__) {
+            console.warn(
+              '[useSkinAnalysis] Gemini unavailable, using on-device analysis:',
+              geminiError instanceof Error ? geminiError.message : geminiError,
+            );
+          }
+          setStage('local');
+          setProgressMonotonic(lerpProgress('local', 0.3));
+          const local = await analyzeFaceFromCameraPhoto({
+            displayImageUri: storedUri,
+            quiz,
+          });
+          vector = local.scoreVector;
+          analysis = local.result;
+          confidence = local.confidence;
+          modelVersion = local.modelVersion;
+          setProgressMonotonic(lerpProgress('local', 1));
+        }
+      } else {
+        setStage('local');
+        setProgressMonotonic(lerpProgress('local', 0.3));
+        const local = await analyzeFaceFromCameraPhoto({
+          displayImageUri: storedUri,
+          quiz,
         });
-        vector = refined.vector;
-        analysis = refined.result;
-        usedCloudRefine = true;
-        setProgressMonotonic(lerpProgress('cloud', 1));
+        setProgressMonotonic(lerpProgress('local', 1));
+
+        if (runId !== runIdRef.current) return;
+
+        vector = local.scoreVector;
+        analysis = local.result;
+        confidence = local.confidence;
+        modelVersion = local.modelVersion;
+
+        if (local.confidence < CLOUD_CONFIDENCE_THRESHOLD) {
+          setStage('cloud');
+          setProgressMonotonic(lerpProgress('cloud', 0.5));
+          const { refineAnalysisWithCloud } = await import('@/services/api/aiAnalyze');
+          const refined = await refineAnalysisWithCloud({
+            scoreVector: vector,
+            quizContext: quiz,
+            imageUri: storedUri,
+          });
+          vector = refined.vector;
+          analysis = refined.result;
+          usedCloudRefine = true;
+          setProgressMonotonic(lerpProgress('cloud', 1));
+        }
       }
 
       if (runId !== runIdRef.current) return;
 
       setStage('sync');
       setProgressMonotonic(lerpProgress('sync', 0.3));
-      const angleImageUris = useSkinStore.getState().pendingAnglePhotos ?? undefined;
       const stored = await submitScan({
         payload: { scoreVector: vector, quizContext: quiz },
         imageUri: storedUri,
-        confidence: local.confidence,
-        modelVersion: ON_DEVICE_MODEL_VERSION,
+        confidence,
+        modelVersion,
         usedCloudRefine,
         localResult: { ...analysis, imageUri: storedUri },
         angleImageUris,
@@ -130,7 +185,7 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
       setProgressMonotonic(lerpProgress('save', 0.5));
       await useSkinStore.getState().addAnalysisResult(stored);
       useSkinStore.getState().setPendingAnglePhotos(null);
-      await useRoutineStore.getState().setFromScan(stored, quiz);
+      await useRoutineStore.getState().setFromScan(stored, quiz, routineFromGemini);
       setProgressMonotonic(lerpProgress('save', 1));
 
       const elapsed = Date.now() - startedAt;
@@ -145,19 +200,22 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
       setResult(stored);
       setMeta({
         scoreVector: vector,
-        confidence: local.confidence,
-        modelVersion: ON_DEVICE_MODEL_VERSION,
+        confidence,
+        modelVersion,
         usedCloudRefine,
         durationMs: Date.now() - startedAt,
       });
     } catch (e) {
-      const code =
-        e instanceof FaceScanError ? e.code : e instanceof Error ? e.message : 'analysis_failed';
+      const code: FaceScanError['code'] | 'analysis_failed' =
+        e instanceof FaceScanError ? e.code : 'analysis_failed';
+      if (__DEV__) {
+        console.warn('[useSkinAnalysis] Pipeline failed:', e);
+      }
       setError(code);
     } finally {
       useSkinStore.getState().setAnalyzing(false);
     }
-  }, [imageUri, setProgressMonotonic]);
+  }, [imageUri, locale, setProgressMonotonic]);
 
   const retry = useCallback(() => {
     void runPipeline();

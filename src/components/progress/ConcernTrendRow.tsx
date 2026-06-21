@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Sparkline } from '@/components/progress/Sparkline';
 import type { ConcernTrend } from '@/screens/progress/progressMockData';
 import type { AppColors } from '@/theme/palettes';
-import { radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
+import { flatCard, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Props = {
   concern: ConcernTrend;
@@ -13,15 +13,10 @@ type Props = {
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
   row: {
+    ...flatCard(colors),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    ...shadows.sm,
   },
   left: {
     flexDirection: 'row',
@@ -30,15 +25,15 @@ function createStyles(colors: AppColors) {
     flex: 1,
   },
   iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: radius.full,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   name: {
-    ...typography.h3,
-    fontSize: 16,
+    ...typography.bodyLg,
+    fontFamily: typography.h3.fontFamily,
     color: colors.textPrimary,
   },
   status: {

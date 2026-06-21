@@ -12,6 +12,7 @@ const ROOT_FALLBACK: Partial<Record<keyof RootStackParamList, keyof RootStackPar
   ScanGuide: 'QuizResults',
   Camera: 'ScanGuide',
   Analyzing: 'Camera',
+  Paywall: 'Camera',
   SkinReport: 'ScanGuide',
   ReportDetail: 'SkinReport',
   RoutineReveal: 'SkinReport',

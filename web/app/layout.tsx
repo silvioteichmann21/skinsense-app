@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   description:
     'Guided 3-angle face scan, on-device analysis, zone-by-zone skin report, and personalized AM/PM routines. Join the waitlist for early access.',
   icons: {
-    icon: '/images/landing/app-icon-v2.png',
-    apple: '/images/landing/app-icon-v2.png',
+    icon: '/images/landing/app-icon-v3.png',
+    apple: '/images/landing/app-icon-v3.png',
   },
   openGraph: {
     title: 'SkinSense — Know your skin. Own your glow.',

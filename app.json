@@ -4,11 +4,11 @@
     "slug": "skinsense",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon-skinsense-v2.png",
+    "icon": "./assets/icon-skinsense-v3.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/icon-skinsense-v2.png",
+      "image": "./assets/skinsense-mark-v3.png",
       "resizeMode": "contain",
       "backgroundColor": "#000000"
     },
@@ -22,21 +22,25 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon-skinsense-v2.png",
+        "foregroundImage": "./assets/skinsense-mark-v3.png",
         "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "monochromeImage": "./assets/android-icon-monochrome-v3.png"
       },
       "package": "com.skinsense.app",
       "permissions": ["CAMERA"]
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/icon-skinsense-v3.png"
     },
     "scheme": "skinsense",
     "extra": {
+      "GEMINI_ANALYSIS": "true",
       "API_BASE_URL": "",
       "SUPABASE_URL": "https://afixdzyeybxgcqpbynud.supabase.co",
-      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmaXhkenlleWJ4Z2NxcGJ5bnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzcwMDEsImV4cCI6MjA5NjAxMzAwMX0.vUUquuJcKB4khjJ6VFlKOokjCRwCzGACaXzFcqYZqPU"
+      "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmaXhkenlleWJ4Z2NxcGJ5bnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzcwMDEsImV4cCI6MjA5NjAxMzAwMX0.vUUquuJcKB4khjJ6VFlKOokjCRwCzGACaXzFcqYZqPU",
+      "REVENUECAT_ENTITLEMENT_ID": "pro",
+      "REVENUECAT_IOS_API_KEY": "",
+      "REVENUECAT_ANDROID_API_KEY": ""
     },
     "plugins": [
       "expo-asset",
@@ -55,7 +59,7 @@
       [
         "expo-notifications",
         {
-          "icon": "./assets/icon-skinsense-v2.png",
+          "icon": "./assets/icon-skinsense-v3.png",
           "color": "#2D6A4F"
         }
       ]

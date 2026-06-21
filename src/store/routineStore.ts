@@ -28,6 +28,7 @@ type RoutineStore = {
   setFromScan: (
     result: SkinAnalysisResult,
     quiz: QuizAnswers | null,
+    routineOverride?: PersonalizedRoutine,
   ) => Promise<PersonalizedRoutine>;
   saveRoutine: (routine: PersonalizedRoutine) => Promise<void>;
   getRoutineForResult: (
@@ -74,8 +75,8 @@ export const useRoutineStore = create<RoutineStore>((set, get) => ({
     return generatePersonalizedRoutine(result, quiz);
   },
 
-  setFromScan: async (result, quiz) => {
-    const generated = generatePersonalizedRoutine(result, quiz);
+  setFromScan: async (result, quiz, routineOverride) => {
+    const generated = routineOverride ?? generatePersonalizedRoutine(result, quiz);
     await saveStoredRoutine(generated, result.id);
     set({ routine: generated, scanId: result.id, hydrated: true });
 

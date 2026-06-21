@@ -8,6 +8,7 @@ export { typography, fontFamilies } from './typography';
 export { shadows, glow, ctaGlow } from './shadows';
 export { motion } from './motion';
 export { layout } from './layout';
+export { flatCard, sectionMetaStyle, sectionTitleStyle } from './surfaces';
 export {
   FACE_OVAL_ASPECT,
   FACE_OVAL_BASE_HEIGHT,

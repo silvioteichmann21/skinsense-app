@@ -17,6 +17,7 @@ export type ProfileMenuItem = {
     | 'helpSupport'
     | 'communityReviews'
     | 'termsPrivacy'
+    | 'upgrade'
     | 'signOut';
 };
 
@@ -34,6 +35,7 @@ export const PROFILE_USER = {
 };
 
 export const PROFILE_MENU: ProfileMenuItem[] = [
+  { id: 'upgrade', label: 'Upgrade to Pro', icon: 'crown-outline', action: 'upgrade' },
   { id: 'edit', label: 'Edit Profile', icon: 'pencil-outline', action: 'editProfile' },
   { id: 'skin', label: 'My Skin Profile', icon: 'face-man-outline', action: 'skinProfile' },
   { id: 'notif', label: 'Notification Settings', icon: 'bell-ring-outline', action: 'notifications' },

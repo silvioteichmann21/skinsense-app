@@ -3,7 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { GradientSurface } from '@/components/ui/GradientButton';
-import type { ChatMessage } from '@/screens/learn/chatMockData';
+import type { ChatMessage } from '@/types/chat';
 import type { AppColors } from '@/theme/palettes';
 import { radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 

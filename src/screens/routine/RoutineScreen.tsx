@@ -31,7 +31,7 @@ import { useActivityStats } from '@/hooks/useActivityStats';
 import { syncRoutineActivity } from '@/utils/syncRoutineActivity';
 import { useRoutineStore } from '@/store/routineStore';
 import type { AppColors } from '@/theme/palettes';
-import { layout, radius, shadows, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
+import { flatCard, layout, radius, spacing, typography, useThemedStyles, useAppTheme } from '@/theme';
 
 type Nav = CompositeNavigationProp<
   BottomTabNavigationProp<MainTabParamList, 'Routine'>,
@@ -48,14 +48,7 @@ function createStyles(colors: AppColors) {
     paddingHorizontal: layout.screenPaddingX,
     gap: layout.sectionGap,
   },
-  streakCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: layout.listCardRadius,
-    padding: spacing.lg,
-    borderWidth: 1,
-    borderColor: colors.hairline,
-    ...shadows.md,
-  },
+  streakCard: flatCard(colors),
   streakRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -92,8 +85,6 @@ function createStyles(colors: AppColors) {
     backgroundColor: colors.surfaceAlt,
     padding: spacing.lg,
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.ctaTint,
   },
   completeText: {
     ...typography.body,

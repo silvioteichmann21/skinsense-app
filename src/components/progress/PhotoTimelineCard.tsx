@@ -12,11 +12,9 @@ type Props = {
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
   card: {
-    width: 140,
+    width: 132,
     backgroundColor: colors.surface,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
+    borderRadius: radius.md,
     padding: spacing.sm,
     alignItems: 'center',
   },

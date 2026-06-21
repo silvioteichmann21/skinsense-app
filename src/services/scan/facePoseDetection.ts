@@ -9,9 +9,15 @@ export type FacePoseSample = {
   confidence: number;
 };
 
-const FRONT_YAW_MAX = 0.085;
-const PROFILE_YAW_MIN = 0.085;
-const MIN_CONFIDENCE = 0.38;
+const FRONT_YAW_MAX = 0.11;
+const PROFILE_YAW_MIN = 0.07;
+const MIN_CONFIDENCE = 0.32;
+
+/** Front-camera preview is mirrored — flip yaw so turn hints match what the user sees. */
+export function normalizePoseSample(sample: FacePoseSample, mirrorYaw: boolean): FacePoseSample {
+  if (!mirrorYaw) return sample;
+  return { ...sample, yawScore: -sample.yawScore };
+}
 
 function base64ToUint8Array(base64: string): Uint8Array {
   const binary = atob(base64);

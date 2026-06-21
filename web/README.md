@@ -83,7 +83,7 @@ Screenshots are synced from the mobile app assets (v2 artwork):
 npm run sync:images
 ```
 
-Sources: `assets/scan/guide-hero-v2.png`, `assets/welcome/slide-*-v2.png`, `assets/icon-skinsense-v2.png` → `public/images/landing/`.
+Sources: `assets/scan/guide-hero-v2.png`, `assets/welcome/slide-*-v2.png`, `assets/icon-skinsense-v3.png` -> `public/images/landing/`.
 
 ## API
 

@@ -16,6 +16,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { I18nProvider } from '@/i18n/I18nProvider';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { NotificationProvider } from '@/providers/NotificationProvider';
+import { SubscriptionProvider } from '@/providers/SubscriptionProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { RootNavigator } from '@/core/navigation/RootNavigator';
 import { useAuthStore } from '@/store/authStore';
@@ -58,11 +59,13 @@ function AppShell() {
       <SafeAreaProvider>
         <I18nProvider>
           <AuthProvider>
-            <NotificationProvider>
-              <NavigationContainer>
-                <RootNavigator />
-              </NavigationContainer>
-            </NotificationProvider>
+            <SubscriptionProvider>
+              <NotificationProvider>
+                <NavigationContainer>
+                  <RootNavigator />
+                </NavigationContainer>
+              </NotificationProvider>
+            </SubscriptionProvider>
           </AuthProvider>
         </I18nProvider>
         <StatusBar style={statusBarStyle} />

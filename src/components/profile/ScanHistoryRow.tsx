@@ -8,6 +8,7 @@ import { radius, spacing, typography, useThemedStyles, useAppTheme } from '@/the
 type Props = {
   entry: LocalizedScanHistoryEntry;
   onPress?: () => void;
+  onDelete?: () => void;
 };
 
 function createStyles(colors: AppColors) {
@@ -54,11 +55,18 @@ function createStyles(colors: AppColors) {
     color: colors.textSecondary,
     marginTop: 2,
   },
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  deleteBtn: {
+    padding: spacing.xs,
+  },
 });
 }
 
-export function ScanHistoryRow({
- entry, onPress }: Props) {
+export function ScanHistoryRow({ entry, onPress, onDelete }: Props) {
   const styles = useThemedStyles(createStyles);
   const { colors } = useAppTheme();
   return (
@@ -75,7 +83,19 @@ export function ScanHistoryRow({
           <Text style={styles.scanType}>{entry.scanType}</Text>
         </View>
       </View>
-      <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textTertiary} />
+      <View style={styles.actions}>
+        {onDelete ? (
+          <Pressable
+            style={styles.deleteBtn}
+            onPress={onDelete}
+            accessibilityLabel="Delete scan"
+            hitSlop={8}
+          >
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color={colors.error} />
+          </Pressable>
+        ) : null}
+        <MaterialCommunityIcons name="chevron-right" size={22} color={colors.textTertiary} />
+      </View>
     </Pressable>
   );
 }

@@ -37,11 +37,12 @@ import { useUserDisplayName } from '@/hooks/useUserDisplayName';
 import type { HomeRoutineStep } from '@/hooks/useHomeMorningRoutine';
 import type { AppColors } from '@/theme/palettes';
 import {
-  glow,
+  flatCard,
+  fontFamilies,
   layout,
   radius,
-  shadows,
   spacing,
+  sectionTitleStyle,
   touchTarget,
   typography,
   useAppTheme,
@@ -80,10 +81,13 @@ function createStyles(colors: AppColors) {
     flex: 1,
     minWidth: 0,
   },
-  greeting: {
+  greetingLine: {
     ...typography.h2,
     color: colors.textPrimary,
-    flexShrink: 1,
+  },
+  greetingName: {
+    ...typography.h2,
+    color: colors.textPrimary,
   },
   date: {
     ...typography.body,
@@ -123,16 +127,11 @@ function createStyles(colors: AppColors) {
     gap: layout.sectionGap,
   },
   scoreCard: {
+    ...flatCard(colors),
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     minWidth: 0,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
-    ...shadows.md,
   },
   scoreRingPlaceholder: {
     width: 96,
@@ -149,9 +148,8 @@ function createStyles(colors: AppColors) {
     marginRight: spacing.md,
   },
   scoreLabel: {
-    ...typography.label,
+    ...typography.caption,
     color: colors.textSecondary,
-    fontSize: 10,
   },
   scoreRow: {
     flexDirection: 'row',
@@ -200,33 +198,20 @@ function createStyles(colors: AppColors) {
     gap: spacing.sm,
   },
   quickIconWrap: {
-    width: 58,
-    height: 58,
-    borderRadius: radius.lg,
-    backgroundColor: colors.surfaceElevated,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
+    width: 52,
+    height: 52,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    ...shadows.sm,
   },
   quickLabel: {
-    ...typography.label,
-    fontSize: 10,
+    ...typography.caption,
     color: colors.textPrimary,
-    textTransform: 'none',
-    letterSpacing: 0,
     textAlign: 'center',
     width: '100%',
   },
-  routineCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
-    ...shadows.sm,
-  },
+  routineCard: flatCard(colors),
   routineHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -256,17 +241,15 @@ function createStyles(colors: AppColors) {
   checkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.lg,
-    padding: spacing.md,
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderMuted,
-    backgroundColor: colors.background,
-    marginBottom: spacing.md,
+    backgroundColor: colors.surfaceMuted,
+    marginBottom: spacing.sm,
   },
   checkRowDone: {
     backgroundColor: colors.surfaceAlt,
-    borderColor: colors.primaryPale,
   },
   checkLabel: {
     ...typography.bodyLg,
@@ -284,43 +267,34 @@ function createStyles(colors: AppColors) {
     marginTop: spacing.sm,
   },
   viewRoutineLabel: {
-    ...typography.label,
-    color: colors.ctaGradientStart,
+    ...typography.body,
+    color: colors.primary,
     fontFamily: typography.h3.fontFamily,
-    letterSpacing: 1.2,
   },
   insightCard: {
+    ...flatCard(colors),
     flexDirection: 'row',
-    gap: spacing.lg,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.xl,
-    padding: spacing.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
-    ...shadows.md,
+    gap: spacing.md,
   },
   insightIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: radius.full,
-    backgroundColor: colors.ctaTint,
+    width: 40,
+    height: 40,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
-    ...glow(colors.ctaGlow, 'md'),
   },
   insightBody: {
     flex: 1,
     minWidth: 0,
   },
   insightTitle: {
-    ...typography.h3,
-    fontSize: 16,
-    color: colors.ctaGradientStart,
+    ...sectionTitleStyle(colors),
     marginBottom: spacing.xs,
   },
   insightText: {
     ...typography.body,
-    color: colors.primaryDark,
+    color: colors.textSecondary,
     lineHeight: 22,
   },
   insightBold: {
@@ -331,15 +305,11 @@ function createStyles(colors: AppColors) {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  learnTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-  },
+  learnTitle: sectionTitleStyle(colors),
   seeAll: {
-    ...typography.label,
-    color: colors.ctaGradientStart,
-    textTransform: 'none',
-    letterSpacing: 0,
+    ...typography.body,
+    color: colors.primary,
+    fontFamily: typography.h3.fontFamily,
   },
   learnScroll: {
     gap: spacing.md,
@@ -347,21 +317,16 @@ function createStyles(colors: AppColors) {
     paddingRight: spacing.sm,
   },
   articleCard: {
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
-    padding: spacing.lg,
+    ...flatCard(colors),
     gap: spacing.md,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    ...shadows.sm,
   },
   articleIcon: {
-    width: 48,
-    height: 48,
+    width: 44,
+    height: 44,
     borderRadius: radius.md,
-    backgroundColor: colors.ctaTint,
+    backgroundColor: colors.surfaceMuted,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -387,10 +352,9 @@ function createStyles(colors: AppColors) {
     backgroundColor: colors.accentLight,
   },
   articleTagText: {
-    fontSize: 10,
-    fontFamily: typography.h3.fontFamily,
-    color: colors.onPrimaryPale,
-    textTransform: 'uppercase',
+    fontSize: 11,
+    fontFamily: fontFamilies.bodyMed,
+    color: colors.textSecondary,
   },
   articleTagTextAccent: {
     color: colors.accentTagText,
@@ -463,9 +427,14 @@ export function HomeScreen() {
 
       <View style={[styles.topBar, { paddingTop: insets.top + spacing.base }]}>
         <View style={styles.topBarCenter}>
-          <Text style={styles.greeting} numberOfLines={2}>
-            {displayName ? `${greeting}, ${displayName} ☀️` : `${greeting} ☀️`}
+          <Text style={styles.greetingLine}>
+            {displayName ? greeting : `${greeting} ☀️`}
           </Text>
+          {displayName ? (
+            <Text style={styles.greetingName}>
+              {t('home.greetingNameLine', { name: displayName })}
+            </Text>
+          ) : null}
           <Text style={styles.date}>{today}</Text>
         </View>
         <View style={styles.topActions}>
@@ -555,7 +524,7 @@ export function HomeScreen() {
           ).map((action) => (
             <PressableScale key={action.key} style={styles.quickAction} onPress={action.onPress} haptic="light">
               <View style={styles.quickIconWrap}>
-                <MaterialCommunityIcons name={action.icon} size={24} color={colors.ctaGradientStart} />
+                <MaterialCommunityIcons name={action.icon} size={22} color={colors.primary} />
               </View>
               <Text style={styles.quickLabel}>{action.label}</Text>
             </PressableScale>
@@ -598,7 +567,7 @@ export function HomeScreen() {
 
         <Reveal index={4} style={styles.insightCard}>
           <View style={styles.insightIcon}>
-            <MaterialCommunityIcons name="water" size={22} color={colors.ctaGradientStart} />
+            <MaterialCommunityIcons name="water" size={20} color={colors.primary} />
           </View>
           <View style={styles.insightBody}>
             <Text style={styles.insightTitle}>{t('home.weeklyInsight')}</Text>
@@ -628,7 +597,7 @@ export function HomeScreen() {
               onPress={() => navigation.navigate('ArticleReader', { articleId: article.id })}
             >
               <View style={styles.articleIcon}>
-                <MaterialCommunityIcons name={article.icon} size={24} color={colors.ctaGradientStart} />
+                <MaterialCommunityIcons name={article.icon} size={22} color={colors.primary} />
               </View>
               <View style={styles.articleBody}>
                 <View style={styles.articleTags}>

@@ -1,4 +1,3 @@
-import { Image } from 'expo-image';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect } from 'react';
@@ -15,11 +14,12 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AuthDecorBackground } from '@/components/auth/AuthDecorBackground';
+import { SkinSenseMark } from '@/components/brand/SkinSenseMark';
 import { resolveSplashRoute } from '@/core/navigation/authRouting';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useAuthStore } from '@/store/authStore';
 import type { AppColors } from '@/theme/palettes';
-import { spacing, typography, useThemedStyles } from '@/theme';
+import { glow, spacing, typography, useThemedStyles } from '@/theme';
 
 const MIN_DISPLAY_MS = 1500;
 
@@ -85,11 +85,11 @@ function createStyles(colors: AppColors) {
   },
   iconWrap: {
     marginBottom: spacing.xl,
-  },
-  icon: {
-    width: 160,
-    height: 160,
-    borderRadius: 36,
+    width: 176,
+    height: 176,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...glow(colors.primaryGlow, 'lg'),
   },
   brand: {
     ...typography.h1,
@@ -201,11 +201,7 @@ export function SplashScreen() {
 
       <Animated.View style={[styles.content, contentStyle]}>
         <View style={styles.iconWrap}>
-          <Image
-            source={require('../../../assets/icon-skinsense-v2.png')}
-            style={styles.icon}
-            contentFit="contain"
-          />
+          <SkinSenseMark size={176} />
         </View>
         <Text style={styles.brand}>SkinSense</Text>
         <Text style={styles.tagline}>Know your skin. Own your glow.</Text>

@@ -19,7 +19,7 @@ type Props = {
  * Wraps content in a subtle fade + slide-up entrance. Compose several with
  * incrementing `index` to get a premium staggered reveal as a screen mounts.
  */
-export function Reveal({ children, delay, index = 0, offsetY = 14, style }: Props) {
+export function Reveal({ children, delay, index = 0, offsetY = 6, style }: Props) {
   const computedDelay = delay ?? index * motion.stagger;
 
   return (

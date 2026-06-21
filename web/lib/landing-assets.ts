@@ -10,5 +10,5 @@ export const LANDING_IMAGES = {
   progress: '/images/landing/slide-3-v2.png',
   /** In-app skin report & insights */
   expertGuidance: '/images/landing/slide-1-v2.png',
-  appIcon: '/images/landing/app-icon-v2.png',
+  appIcon: '/images/landing/app-icon-v3.png',
 } as const;

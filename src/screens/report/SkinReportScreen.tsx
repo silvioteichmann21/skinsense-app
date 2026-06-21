@@ -22,8 +22,9 @@ import { useTranslation } from '@/i18n/useTranslation';
 import { useScanDateLabel } from '@/i18n/useFormattedDate';
 import type { AppColors } from '@/theme/palettes';
 import {
+  flatCard,
   radius,
-  shadows,
+  sectionTitleStyle,
   spacing,
   touchTarget,
   typography,
@@ -61,16 +62,11 @@ function createStyles(colors: AppColors) {
     paddingTop: spacing.xl,
   },
   scoreCard: {
+    ...flatCard(colors),
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.base,
-    backgroundColor: colors.surfaceElevated,
-    borderRadius: radius.lg,
-    padding: spacing.xl,
     marginBottom: spacing.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
-    ...shadows.md,
   },
   scoreMeta: {
     flex: 1,
@@ -109,11 +105,7 @@ function createStyles(colors: AppColors) {
     textDecorationLine: 'underline',
   },
   skinTypeCard: {
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.primaryPale,
-    borderRadius: radius.md,
-    padding: spacing.lg,
+    ...flatCard(colors),
     marginBottom: spacing.xl,
   },
   skinTypeHeader: {
@@ -169,22 +161,16 @@ function createStyles(colors: AppColors) {
     color: colors.chipNeutralText,
   },
   sectionTitle: {
-    ...typography.h2,
-    color: colors.textPrimary,
+    ...sectionTitleStyle(colors),
     marginBottom: spacing.base,
   },
   sectionSpaced: {
     marginTop: spacing.xl,
   },
   positivesCard: {
-    backgroundColor: colors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.hairline,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
+    ...flatCard(colors),
     gap: spacing.base,
     marginBottom: spacing.xl,
-    ...shadows.sm,
   },
   positiveRow: {
     flexDirection: 'row',
@@ -206,11 +192,17 @@ function createStyles(colors: AppColors) {
     minWidth: 0,
   },
   nextStepsRow: {
+    alignItems: 'stretch',
     gap: spacing.base,
     paddingBottom: spacing.sm,
     paddingHorizontal: 2,
   },
+  nextStepPressable: {
+    alignSelf: 'stretch',
+  },
   nextCard: {
+    flex: 1,
+    width: '100%',
     padding: spacing.lg,
     borderRadius: radius.lg,
   },
@@ -221,7 +213,6 @@ function createStyles(colors: AppColors) {
     backgroundColor: colors.surface,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.hairline,
-    ...shadows.sm,
   },
   nextTitle: {
     ...typography.h3,
@@ -448,6 +439,7 @@ export function SkinReportScreen() {
                     styles.nextTitle,
                     step.variant === 'primary' && styles.nextTitlePrimary,
                   ]}
+                  numberOfLines={2}
                 >
                   {step.title}
                 </Text>
@@ -456,6 +448,7 @@ export function SkinReportScreen() {
                     styles.nextSub,
                     step.variant === 'primary' && styles.nextSubPrimary,
                   ]}
+                  numberOfLines={2}
                 >
                   {step.subtitle}
                 </Text>
@@ -475,7 +468,7 @@ export function SkinReportScreen() {
                         ? () => navigation.navigate('ScanGuide')
                         : undefined
                 }
-                style={{ width: nextCardWidth }}
+                style={[styles.nextStepPressable, { width: nextCardWidth }]}
               >
                 {step.variant === 'primary' ? (
                   <GradientSurface style={[styles.nextCard, styles.nextCardPrimary]}>

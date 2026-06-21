@@ -1,8 +1,8 @@
-import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
+import { SkinSenseMark } from '@/components/brand/SkinSenseMark';
 import type { AppColors } from '@/theme/palettes';
-import { spacing, typography, useThemedStyles } from '@/theme';
+import { glow, spacing, typography, useThemedStyles } from '@/theme';
 
 type Props = {
   title: string;
@@ -18,10 +18,13 @@ function createStyles(colors: AppColors) {
       maxWidth: 400,
       width: '100%',
     },
-    logo: {
-      width: 48,
-      height: 48,
+    logoWrap: {
+      width: 76,
+      height: 76,
       marginBottom: spacing.lg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      ...glow(colors.primaryGlow, 'md'),
     },
     titleH1: {
       ...typography.h1,
@@ -47,11 +50,9 @@ export function AuthHeader({ title, subtitle, titleSize = 'h1' }: Props) {
 
   return (
     <View style={styles.wrap}>
-      <Image
-        source={require('../../../assets/icon-skinsense-v2.png')}
-        style={styles.logo}
-        contentFit="contain"
-      />
+      <View style={styles.logoWrap}>
+        <SkinSenseMark size={76} />
+      </View>
       <Text style={titleSize === 'h2' ? styles.titleH2 : styles.titleH1}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
     </View>

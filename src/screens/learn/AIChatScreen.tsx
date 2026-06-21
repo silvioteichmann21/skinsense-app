@@ -22,13 +22,14 @@ import { ChatTypingIndicator } from '@/components/chat/ChatTypingIndicator';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { ScreenBackButton } from '@/components/ui/ScreenBackButton';
 import type { RootStackParamList } from '@/core/navigation/types';
-import { useTranslation } from '@/i18n/useTranslation';
-import type { TranslationKey } from '@/i18n/useTranslation';
-import type { ChatMessage } from '@/screens/learn/chatMockData';
+import { useGeminiChatReply } from '@/hooks/useGeminiChatReply';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { useUserDisplayName } from '@/hooks/useUserDisplayName';
+import { useTranslation } from '@/i18n/useTranslation';
+import type { TranslationKey } from '@/i18n/useTranslation';
 import type { AppColors } from '@/theme/palettes';
-import { layout, radius, shadows, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
+import { layout, radius, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
+import type { ChatMessage } from '@/types/chat';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AIChat'>;
 
@@ -43,24 +44,6 @@ let messageId = 100;
 function nextId() {
   messageId += 1;
   return `msg-${messageId}`;
-}
-
-function getLocalizedReply(
-  userText: string,
-  t: ReturnType<typeof useTranslation>['t'],
-): Pick<ChatMessage, 'text' | 'showInsight'> {
-  const lower = userText.toLowerCase();
-
-  if (lower.includes('acne') || lower.includes('breakout')) {
-    return { text: t('chat.replyAcne'), showInsight: true };
-  }
-  if (lower.includes('spf') || lower.includes('sun') || lower.includes('uv')) {
-    return { text: t('chat.replySpf'), showInsight: true };
-  }
-  if (lower.includes('routine') || lower.includes('morning') || lower.includes('evening')) {
-    return { text: t('chat.replyRoutine') };
-  }
-  return { text: t('chat.replyFallback') };
 }
 
 function createStyles(colors: AppColors) {
@@ -174,21 +157,27 @@ export function AIChatScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const displayName = useUserDisplayName();
+  const guestName = t('profile.guestName');
+  const chatUserName = displayName || guestName;
   const { displayUri: profilePhotoUri } = useProfilePhoto();
+  const { getReply } = useGeminiChatReply(chatUserName);
   const scrollRef = useRef<ScrollView>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const initialMessages = useMemo<ChatMessage[]>(
     () => [
       {
         id: 'ai-greeting',
         role: 'assistant',
-        text: t('chat.replyGreeting', { name: displayName || t('profile.guestName') }),
+        text: t('chat.replyGreeting', { name: chatUserName }),
       },
     ],
-    [t, displayName],
+    [t, chatUserName],
   );
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [draft, setDraft] = useState('');
   const [typing, setTyping] = useState(false);
+
+  messagesRef.current = messages;
 
   const suggestedPrompts = useMemo(() => PROMPT_KEYS.map((key) => t(key)), [t]);
 
@@ -199,18 +188,19 @@ export function AIChatScreen() {
   }, []);
 
   const sendText = useCallback(
-    (text: string) => {
+    async (text: string) => {
       const trimmed = text.trim();
       if (!trimmed || typing) return;
 
       const userMsg: ChatMessage = { id: nextId(), role: 'user', text: trimmed };
+      const priorMessages = messagesRef.current;
       setMessages((prev) => [...prev, userMsg]);
       setDraft('');
       setTyping(true);
       scrollToEnd();
 
-      const reply = getLocalizedReply(trimmed, t);
-      setTimeout(() => {
+      try {
+        const reply = await getReply(trimmed, priorMessages);
         setMessages((prev) => [
           ...prev,
           {
@@ -220,11 +210,12 @@ export function AIChatScreen() {
             showInsight: reply.showInsight,
           },
         ]);
+      } finally {
         setTyping(false);
         scrollToEnd();
-      }, 1200);
+      }
     },
-    [typing, scrollToEnd, t],
+    [typing, scrollToEnd, getReply],
   );
 
   return (
@@ -275,7 +266,7 @@ export function AIChatScreen() {
               <Pressable
                 key={prompt}
                 style={({ pressed }) => [styles.chip, pressed && styles.chipPressed]}
-                onPress={() => sendText(prompt)}
+                onPress={() => void sendText(prompt)}
                 disabled={typing}
               >
                 <Text style={styles.chipText}>{prompt}</Text>
@@ -292,12 +283,12 @@ export function AIChatScreen() {
               onChangeText={setDraft}
               editable={!typing}
               returnKeyType="send"
-              onSubmitEditing={() => sendText(draft)}
+              onSubmitEditing={() => void sendText(draft)}
             />
             <GradientButton
               shape="circle"
               style={styles.sendBtn}
-              onPress={() => sendText(draft)}
+              onPress={() => void sendText(draft)}
               disabled={!draft.trim() || typing}
               haptic="light"
             >
