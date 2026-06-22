@@ -9,14 +9,28 @@ export type FacePoseSample = {
   confidence: number;
 };
 
-const FRONT_YAW_MAX = 0.11;
-const PROFILE_YAW_MIN = 0.07;
-const MIN_CONFIDENCE = 0.32;
+const MIN_CONFIDENCE = 0.3;
+export const MIN_POSE_CONFIDENCE = MIN_CONFIDENCE;
+const FAST_SAMPLE_MAX_EDGE = 96;
+
+/** Strong profile turn — used only to reject clearly wrong angles. */
+const CLEAR_PROFILE = 0.085;
+/** Still facing camera when a side profile is expected. */
+const CLEAR_FRONT = 0.038;
+/** Turned the opposite way for a profile step. */
+const CLEAR_OPPOSITE = 0.065;
 
 /** Front-camera preview is mirrored — flip yaw so turn hints match what the user sees. */
 export function normalizePoseSample(sample: FacePoseSample, mirrorYaw: boolean): FacePoseSample {
   if (!mirrorYaw) return sample;
   return { ...sample, yawScore: -sample.yawScore };
+}
+
+function sampleStep(width: number, height: number, fast: boolean): number {
+  if (!fast) {
+    return width > 120 ? 2 : 1;
+  }
+  return Math.max(3, Math.floor(Math.min(width, height) / 22));
 }
 
 function base64ToUint8Array(base64: string): Uint8Array {
@@ -47,9 +61,9 @@ function regionStats(
   const y0 = Math.floor(height * yStartRatio);
   const y1 = Math.floor(height * yEndRatio);
 
-  let sum = 0;
   let count = 0;
-  const samples: number[] = [];
+  let mean = 0;
+  let m2 = 0;
 
   for (let y = y0; y < y1; y += step) {
     for (let x = x0; x < x1; x += step) {
@@ -58,9 +72,11 @@ function regionStats(
       const g = data[idx + 1] ?? 0;
       const b = data[idx + 2] ?? 0;
       const bright = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      sum += bright;
-      samples.push(bright);
-      count++;
+
+      count += 1;
+      const delta = bright - mean;
+      mean += delta / count;
+      m2 += delta * (bright - mean);
     }
   }
 
@@ -68,39 +84,47 @@ function regionStats(
     return { mean: 0.5, variance: 0 };
   }
 
-  const mean = sum / count;
-  let varSum = 0;
-  for (const s of samples) {
-    varSum += (s - mean) ** 2;
-  }
-
-  return { mean, variance: Math.sqrt(varSum / count) };
+  return { mean, variance: Math.sqrt(m2 / count) };
 }
 
-function analyzeRgba(data: Uint8Array, width: number, height: number): FacePoseSample {
-  const step = width > 120 ? 2 : 1;
-  const left = regionStats(data, width, height, 0.06, 0.36, 0.2, 0.78, step);
-  const right = regionStats(data, width, height, 0.64, 0.94, 0.2, 0.78, step);
-  const center = regionStats(data, width, height, 0.36, 0.64, 0.18, 0.8, step);
+function analyzeRgba(
+  data: Uint8Array,
+  width: number,
+  height: number,
+  fast = false,
+): FacePoseSample {
+  const step = sampleStep(width, height, fast);
 
-  const brightnessYaw = right.mean - left.mean;
-  const textureYaw = (right.variance - left.variance) * 0.35;
-  const yawScore = brightnessYaw * 0.75 + textureYaw * 0.25;
+  const leftCheek = regionStats(data, width, height, 0.08, 0.38, 0.32, 0.72, step);
+  const rightCheek = regionStats(data, width, height, 0.62, 0.92, 0.32, 0.72, step);
+  const leftSide = regionStats(data, width, height, 0.04, 0.28, 0.22, 0.78, step);
+  const rightSide = regionStats(data, width, height, 0.72, 0.96, 0.22, 0.78, step);
+  const center = regionStats(data, width, height, 0.36, 0.64, 0.2, 0.78, step);
+  const forehead = regionStats(data, width, height, 0.32, 0.68, 0.12, 0.34, step);
+
+  const cheekYaw = rightCheek.mean - leftCheek.mean;
+  const sideYaw = rightSide.mean - leftSide.mean;
+  const textureYaw = (rightCheek.variance - leftCheek.variance) * 0.28;
+  const yawScore = cheekYaw * 0.55 + sideYaw * 0.3 + textureYaw * 0.15;
 
   const hasSkinTone =
-    center.mean > 0.2 &&
-    center.mean < 0.92 &&
-    left.mean > 0.1 &&
-    right.mean > 0.1;
+    center.mean > 0.18 &&
+    center.mean < 0.93 &&
+    leftCheek.mean > 0.1 &&
+    rightCheek.mean > 0.1;
   const hasTexture =
-    left.variance + right.variance + center.variance > 0.024;
+    leftCheek.variance + rightCheek.variance + center.variance > 0.022;
+  const faceCentered =
+    center.variance >= Math.min(leftSide.variance, rightSide.variance) * 0.4;
   const notEmpty =
-    Math.abs(left.mean - right.mean) < 0.45 || Math.abs(yawScore) > 0.035;
+    Math.abs(leftCheek.mean - rightCheek.mean) < 0.42 ||
+    Math.abs(yawScore) > 0.03 ||
+    forehead.variance > 0.015;
 
-  const faceDetected = hasSkinTone && hasTexture && notEmpty;
-  const symmetry = 1 - Math.min(1, Math.abs(yawScore) / 0.24);
+  const faceDetected = hasSkinTone && hasTexture && notEmpty && faceCentered;
+  const symmetry = 1 - Math.min(1, Math.abs(yawScore) / 0.22);
   const confidence = faceDetected
-    ? clamp01(0.5 + symmetry * 0.22 + center.variance * 0.75)
+    ? clamp01(0.48 + symmetry * 0.2 + center.variance * 0.7 + forehead.variance * 0.35)
     : 0;
 
   return { faceDetected, yawScore, confidence };
@@ -117,26 +141,35 @@ function decodeJpegBase64(base64: string): { data: Uint8Array; width: number; he
   }
 }
 
-export function analyzeFacePoseFromBase64(base64: string): FacePoseSample | null {
+export function analyzeFacePoseFromBase64(base64: string, fast = false): FacePoseSample | null {
   const decoded = decodeJpegBase64(base64);
   if (!decoded) return null;
-  return analyzeRgba(decoded.data, decoded.width, decoded.height);
+  return analyzeRgba(decoded.data, decoded.width, decoded.height, fast);
 }
 
-export async function analyzeFacePoseFromUri(imageUri: string): Promise<FacePoseSample | null> {
+/** Lightweight live-poll path — skips ImageManipulator and subsamples large frames. */
+export function analyzeFacePoseSampleBase64(base64: string): FacePoseSample | null {
+  return analyzeFacePoseFromBase64(base64, true);
+}
+
+export async function analyzeFacePoseFromUri(
+  imageUri: string,
+  fast = false,
+): Promise<FacePoseSample | null> {
   try {
+    const maxEdge = fast ? FAST_SAMPLE_MAX_EDGE : 144;
     const manipulated = await ImageManipulator.manipulateAsync(
       imageUri,
-      [{ resize: { width: 144, height: 180 } }],
+      [{ resize: { width: maxEdge } }],
       {
-        compress: 0.45,
+        compress: fast ? 0.28 : 0.45,
         format: ImageManipulator.SaveFormat.JPEG,
         base64: true,
       },
     );
 
     if (!manipulated.base64) return null;
-    return analyzeFacePoseFromBase64(manipulated.base64);
+    return analyzeFacePoseFromBase64(manipulated.base64, fast);
   } catch {
     return null;
   }
@@ -145,7 +178,7 @@ export async function analyzeFacePoseFromUri(imageUri: string): Promise<FacePose
 export function smoothPoseSample(
   previous: FacePoseSample | null,
   next: FacePoseSample,
-  alpha = 0.38,
+  alpha = 0.58,
 ): FacePoseSample {
   if (!previous?.faceDetected || !next.faceDetected) return next;
   return {
@@ -155,23 +188,43 @@ export function smoothPoseSample(
   };
 }
 
-/** 0–1 how close the face is to the target pose */
-export function getPoseAlignmentProgress(pose: FacePoseId, sample: FacePoseSample): number {
-  if (!sample.faceDetected) return 0;
+/** True when the angle is obviously wrong for this step (e.g. right step but facing front/left). */
+export function isClearlyWrongPose(pose: FacePoseId, sample: FacePoseSample): boolean {
+  if (!sample.faceDetected || sample.confidence < MIN_CONFIDENCE) {
+    return true;
+  }
+
+  const y = sample.yawScore;
 
   switch (pose) {
     case 'front':
-      return clamp01(1 - Math.abs(sample.yawScore) / FRONT_YAW_MAX);
+      return Math.abs(y) > CLEAR_PROFILE;
     case 'right':
-      return clamp01((sample.yawScore + 0.02) / (PROFILE_YAW_MIN + 0.02));
+      return y < -CLEAR_OPPOSITE || Math.abs(y) < CLEAR_FRONT;
     case 'left':
-      return clamp01((-sample.yawScore + 0.02) / (PROFILE_YAW_MIN + 0.02));
+      return y > CLEAR_OPPOSITE || Math.abs(y) < CLEAR_FRONT;
     default:
-      return 0;
+      return false;
   }
 }
 
+/** Good enough to capture — only blocks obviously wrong angles. */
+export function isAcceptablePose(pose: FacePoseId, sample: FacePoseSample): boolean {
+  return sample.faceDetected && sample.confidence >= MIN_CONFIDENCE && !isClearlyWrongPose(pose, sample);
+}
+
+/** UI progress: high when acceptable, low when clearly wrong. */
+export function getPoseAlignmentProgress(pose: FacePoseId, sample: FacePoseSample): number {
+  if (!sample.faceDetected) return 0;
+  if (isClearlyWrongPose(pose, sample)) return 0.12;
+  return 0.88;
+}
+
+/** @deprecated Use isAcceptablePose — kept for callers that expect this name. */
 export function matchesTargetPose(pose: FacePoseId, sample: FacePoseSample): boolean {
-  if (!sample.faceDetected || sample.confidence < MIN_CONFIDENCE) return false;
-  return getPoseAlignmentProgress(pose, sample) >= 0.82;
+  return isAcceptablePose(pose, sample);
+}
+
+export function matchesTargetPoseStrict(pose: FacePoseId, sample: FacePoseSample): boolean {
+  return isAcceptablePose(pose, sample);
 }

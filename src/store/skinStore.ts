@@ -14,6 +14,8 @@ type SkinStore = {
   currentScanImageUri: string | null;
   pendingAnglePhotos: AngleImageUris | null;
   hydrated: boolean;
+  profilePhotoRevision: number;
+  profileAvatarGenerating: boolean;
   setScanImage: (uri: string) => void;
   setPendingAnglePhotos: (uris: AngleImageUris | null) => void;
   setAnalyzing: (value: boolean) => void;
@@ -23,6 +25,8 @@ type SkinStore = {
   loadHistory: () => Promise<void>;
   resetForUserSwitch: () => void;
   getScanById: (id: string) => StoredScanRecord | undefined;
+  bumpProfilePhotoRevision: () => void;
+  setProfileAvatarGenerating: (value: boolean) => void;
 };
 
 export const useSkinStore = create<SkinStore>((set, get) => ({
@@ -32,6 +36,8 @@ export const useSkinStore = create<SkinStore>((set, get) => ({
   currentScanImageUri: null,
   pendingAnglePhotos: null,
   hydrated: false,
+  profilePhotoRevision: 0,
+  profileAvatarGenerating: false,
 
   setScanImage: (uri) => set({ currentScanImageUri: uri }),
 
@@ -85,8 +91,15 @@ export const useSkinStore = create<SkinStore>((set, get) => ({
       currentScanImageUri: null,
       pendingAnglePhotos: null,
       hydrated: false,
+      profilePhotoRevision: 0,
+      profileAvatarGenerating: false,
     });
   },
 
   getScanById: (id) => get().analysisHistory.find((s) => s.id === id),
+
+  bumpProfilePhotoRevision: () =>
+    set((state) => ({ profilePhotoRevision: state.profilePhotoRevision + 1 })),
+
+  setProfileAvatarGenerating: (value) => set({ profileAvatarGenerating: value }),
 }));

@@ -5,11 +5,11 @@ import type { AngleImageUris } from '@/types/scanPipeline';
 const MAX_WIDTH = 768;
 const JPEG_QUALITY = 0.82;
 
-async function encodeOne(uri: string): Promise<string | null> {
+async function encodeOne(uri: string, maxWidth = MAX_WIDTH): Promise<string | null> {
   try {
     const manipulated = await ImageManipulator.manipulateAsync(
       uri,
-      [{ resize: { width: MAX_WIDTH } }],
+      [{ resize: { width: maxWidth } }],
       {
         compress: JPEG_QUALITY,
         format: ImageManipulator.SaveFormat.JPEG,
@@ -20,6 +20,11 @@ async function encodeOne(uri: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/** Resize a single scan photo to base64 JPEG (no data-uri prefix). */
+export function encodeScanImageForGemini(uri: string, maxWidth = 512): Promise<string | null> {
+  return encodeOne(uri, maxWidth);
 }
 
 /** Resize scan photos and return base64 JPEG (no data-uri prefix). */

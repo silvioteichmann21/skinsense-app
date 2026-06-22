@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.skin-chat]
 verify_jwt = false
+
+[functions.enhance-portrait]
+verify_jwt = false

@@ -15,6 +15,7 @@ import type { RootStackParamList } from '@/core/navigation/types';
 import { useLocalizedSkinProfile } from '@/i18n/content/useLocalizedSkinProfile';
 import { useTranslation } from '@/i18n/useTranslation';
 import { useUserDisplayName } from '@/hooks/useUserDisplayName';
+import { useRequirePremium } from '@/hooks/usePremiumAccess';
 import { useSkinStore } from '@/store/skinStore';
 import type { AppColors } from '@/theme/palettes';
 import { glow, layout, radius, spacing, touchTarget, typography, useThemedStyles, useAppTheme } from '@/theme';
@@ -190,6 +191,7 @@ export function SkinProfileScreen() {
   const displayName = useUserDisplayName();
   const getScanById = useSkinStore((s) => s.getScanById);
   const removeScanRecord = useSkinStore((s) => s.removeScanRecord);
+  const { guardPremium } = useRequirePremium();
 
   const retakeQuiz = () => {
     navigation.push('SkinQuiz', displayName ? { displayName } : undefined);
@@ -201,11 +203,14 @@ export function SkinProfileScreen() {
 
   const openScanReport = (scanId: string) => {
     const record = getScanById(scanId);
-    if (record) {
-      navigation.navigate('SkinReport', { result: record });
+    if (!record) {
+      Alert.alert(t('skinProfile.scanHistory'), t('skinProfile.scanNotFound'));
       return;
     }
-    Alert.alert(t('skinProfile.scanHistory'), t('skinProfile.scanNotFound'));
+    guardPremium(() => navigation.navigate('SkinReport', { result: record }), {
+      mode: 'checkout',
+      result: record,
+    });
   };
 
   const confirmDeleteScan = (scanId: string, dateLabel: string) => {

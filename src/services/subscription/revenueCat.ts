@@ -157,6 +157,23 @@ export async function restoreRevenueCatPurchases(): Promise<{
   return syncPremiumFromCustomerInfo(customerInfo);
 }
 
+export function getSubscriptionManagementUrl(customerInfo: CustomerInfo): string | null {
+  const url = customerInfo.managementURL;
+  return url && url.length > 0 ? url : null;
+}
+
+export function addRevenueCatCustomerInfoListener(
+  listener: (info: CustomerInfo) => void,
+): () => void {
+  if (!isRevenueCatReady()) {
+    return () => {};
+  }
+  Purchases.addCustomerInfoUpdateListener(listener);
+  return () => {
+    Purchases.removeCustomerInfoUpdateListener(listener);
+  };
+}
+
 export function getRevenueCatPlatformLabel(): string {
   return Platform.OS === 'ios' ? 'App Store' : Platform.OS === 'android' ? 'Google Play' : 'store';
 }

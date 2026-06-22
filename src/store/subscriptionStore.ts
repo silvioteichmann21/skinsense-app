@@ -1,8 +1,9 @@
 import { create } from 'zustand';
 
 import type { SubscriptionPlanId } from '@/config/subscriptionPlans';
-import { isRevenueCatConfigured } from '@/config/env';
+import { allowMockSubscriptions, isRevenueCatConfigured } from '@/config/env';
 import {
+  clearPremiumStatus,
   loadPremiumStatus,
   savePremiumStatus,
   type StoredPlanId,
@@ -18,6 +19,7 @@ import {
   type PlanPackages,
   type PlanPriceLabels,
 } from '@/services/subscription/revenueCat';
+import type { CustomerInfo } from 'react-native-purchases';
 
 export class SubscriptionPurchaseError extends Error {
   readonly userCancelled: boolean;
@@ -42,6 +44,8 @@ type SubscriptionStore = {
   loadOfferings: () => Promise<void>;
   purchasePlan: (planId: SubscriptionPlanId) => Promise<void>;
   restorePurchases: () => Promise<boolean>;
+  syncFromCustomerInfo: (customerInfo: CustomerInfo) => Promise<void>;
+  resetForUserSwitch: () => Promise<void>;
 };
 
 async function applyPremiumState(
@@ -66,6 +70,10 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
   offeringsLoaded: false,
 
   initialize: async (appUserId) => {
+    if (!appUserId) {
+      await get().resetForUserSwitch();
+    }
+
     const rcConfigured = await configureRevenueCat(appUserId);
     set({ revenueCatEnabled: rcConfigured });
 
@@ -135,7 +143,14 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       }
     }
 
-    await applyPremiumState(true, planId);
+    if (allowMockSubscriptions()) {
+      await applyPremiumState(true, planId);
+      return;
+    }
+
+    throw new SubscriptionPurchaseError(
+      'Subscriptions are not available on this build. Use a development build with RevenueCat configured.',
+    );
   },
 
   restorePurchases: async () => {
@@ -145,15 +160,35 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       return restored.isPremium;
     }
 
-    const stored = await loadPremiumStatus();
-    if (stored.isPremium) {
-      set({
-        isPremium: true,
-        activePlanId: stored.planId,
-        hydrated: true,
-      });
-      return true;
+    if (allowMockSubscriptions()) {
+      const stored = await loadPremiumStatus();
+      if (stored.isPremium) {
+        set({
+          isPremium: true,
+          activePlanId: stored.planId,
+          hydrated: true,
+        });
+        return true;
+      }
     }
+
     return false;
+  },
+
+  syncFromCustomerInfo: async (customerInfo) => {
+    const synced = syncPremiumFromCustomerInfo(customerInfo);
+    await applyPremiumState(synced.isPremium, synced.planId);
+  },
+
+  resetForUserSwitch: async () => {
+    await clearPremiumStatus();
+    set({
+      isPremium: false,
+      activePlanId: null,
+      hydrated: false,
+      packages: {},
+      priceLabels: {},
+      offeringsLoaded: false,
+    });
   },
 }));

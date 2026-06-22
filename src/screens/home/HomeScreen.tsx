@@ -20,6 +20,7 @@ import { CommunityReviewsSection } from '@/components/feedback/CommunityReviewsS
 import { CommunityTrustCard } from '@/components/feedback/CommunityTrustCard';
 import { incrementHomeVisitCount } from '@/core/storage/feedbackPromptStorage';
 import { useReviewPrompt } from '@/hooks/useReviewPrompt';
+import { useRequirePremium } from '@/hooks/usePremiumAccess';
 import { SkinScoreRing } from '@/components/report/SkinScoreRing';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { GradientButton } from '@/components/ui/GradientButton';
@@ -397,6 +398,7 @@ export function HomeScreen() {
   const displayName = useUserDisplayName();
   const { streakDays, totalScans } = useActivityStats();
   const { tryShowAnyPrompt } = useReviewPrompt();
+  const { guardPremium } = useRequirePremium();
   const articleWidth = useCarouselCardWidth();
 
   useFocusEffect(
@@ -518,7 +520,7 @@ export function HomeScreen() {
                 key: 'chat',
                 label: t('home.quickChat'),
                 icon: 'chat-outline' as const,
-                onPress: () => navigation.navigate('AIChat'),
+                onPress: () => guardPremium(() => navigation.navigate('AIChat'), { mode: 'checkout' }),
               },
             ] as const
           ).map((action) => (

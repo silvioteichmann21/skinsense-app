@@ -3,8 +3,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Image } from 'expo-image';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -23,6 +24,7 @@ import { GradientButton } from '@/components/ui/GradientButton';
 import { ScreenBackButton } from '@/components/ui/ScreenBackButton';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useGeminiChatReply } from '@/hooks/useGeminiChatReply';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useProfilePhoto } from '@/hooks/useProfilePhoto';
 import { useUserDisplayName } from '@/hooks/useUserDisplayName';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -161,6 +163,7 @@ export function AIChatScreen() {
   const chatUserName = displayName || guestName;
   const { displayUri: profilePhotoUri } = useProfilePhoto();
   const { getReply } = useGeminiChatReply(chatUserName);
+  const { isPremium, hydrated } = usePremiumAccess();
   const scrollRef = useRef<ScrollView>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
   const initialMessages = useMemo<ChatMessage[]>(
@@ -178,6 +181,11 @@ export function AIChatScreen() {
   const [typing, setTyping] = useState(false);
 
   messagesRef.current = messages;
+
+  useEffect(() => {
+    if (!hydrated || isPremium) return;
+    navigation.replace('Paywall', { mode: 'checkout' });
+  }, [hydrated, isPremium, navigation]);
 
   const suggestedPrompts = useMemo(() => PROMPT_KEYS.map((key) => t(key)), [t]);
 
@@ -217,6 +225,15 @@ export function AIChatScreen() {
     },
     [typing, scrollToEnd, getReply],
   );
+
+  if (!hydrated || !isPremium) {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <StatusBar style={statusBarStyle} />
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>

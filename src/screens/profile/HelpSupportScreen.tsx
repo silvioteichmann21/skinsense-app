@@ -9,6 +9,7 @@ import { CommunityReviewsSection } from '@/components/feedback/CommunityReviewsS
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SurfaceCard } from '@/components/ui/SurfaceCard';
 import type { RootStackParamList } from '@/core/navigation/types';
+import { useRequirePremium } from '@/hooks/usePremiumAccess';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
 import type { AppColors } from '@/theme/palettes';
@@ -117,6 +118,7 @@ export function HelpSupportScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const { guardPremium } = useRequirePremium();
 
   const openEmail = () => {
     void Linking.openURL(`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(t('help.emailSubject'))}`);
@@ -187,7 +189,9 @@ export function HelpSupportScreen() {
         <SurfaceCard variant="sunken">
           <Pressable
             style={styles.actionBtn}
-            onPress={() => navigation.navigate('AIChat')}
+            onPress={() =>
+              guardPremium(() => navigation.navigate('AIChat'), { mode: 'checkout' })
+            }
           >
             <Text style={styles.actionLabel}>{t('help.askAi')}</Text>
             <MaterialCommunityIcons name="chat-outline" size={20} color={colors.primary} />

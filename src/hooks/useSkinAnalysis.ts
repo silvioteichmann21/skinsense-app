@@ -9,6 +9,11 @@ import { submitScan } from '@/services/api/scans';
 import { FaceScanError, analyzeFaceFromCameraPhoto } from '@/services/ai/faceScanAnalysis';
 import { useI18n } from '@/i18n/I18nProvider';
 import { persistScanImage } from '@/services/scan/scanImageStorage';
+import {
+  ensureProfileAvatarFromScan,
+  syncProfileAvatarIfNeeded,
+} from '@/services/profile/scanProfileAvatar';
+import { useAuthStore } from '@/store/authStore';
 import { useRoutineStore } from '@/store/routineStore';
 import { useSkinStore } from '@/store/skinStore';
 import type { SkinAnalysisResult } from '@/types/skinAnalysis';
@@ -186,6 +191,15 @@ export function useSkinAnalysis(imageUri: string): UseSkinAnalysisState {
       await useSkinStore.getState().addAnalysisResult(stored);
       useSkinStore.getState().setPendingAnglePhotos(null);
       await useRoutineStore.getState().setFromScan(stored, quiz, routineFromGemini);
+
+      if (useSkinStore.getState().analysisHistory.length === 1) {
+        void ensureProfileAvatarFromScan(stored, locale).then((portrait) => {
+          if (!portrait) return;
+          const userId = useAuthStore.getState().user?.id ?? null;
+          void syncProfileAvatarIfNeeded(userId, portrait.idealUri);
+        });
+      }
+
       setProgressMonotonic(lerpProgress('save', 1));
 
       const elapsed = Date.now() - startedAt;

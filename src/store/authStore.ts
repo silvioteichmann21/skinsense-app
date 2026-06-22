@@ -14,6 +14,7 @@ import {
 import { fetchProfile } from '@/services/auth/profileService';
 import { useRoutineStore } from '@/store/routineStore';
 import { useSkinStore } from '@/store/skinStore';
+import { useSubscriptionStore } from '@/store/subscriptionStore';
 import {
   evaluateStreakAtRisk,
   rescheduleNotifications,
@@ -171,6 +172,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
     try {
       await authSignOut();
       set({ session: null, user: null, profile: null });
+      await useSubscriptionStore.getState().resetForUserSwitch();
       await reloadUserLocalData();
     } finally {
       set({ isLoading: false });

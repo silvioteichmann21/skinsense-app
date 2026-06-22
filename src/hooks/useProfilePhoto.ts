@@ -3,12 +3,16 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   clearProfilePhotoUri,
   loadProfilePhotoUri,
-  saveProfilePhotoUri,
   type StoredProfilePhoto,
 } from '@/core/storage/profilePhotoStorage';
 import { useIdealPortrait } from '@/hooks/useIdealPortrait';
+import { useI18n } from '@/i18n/I18nProvider';
 import { pickFacePhotoFromGallery } from '@/screens/scan/pickFacePhoto';
-import { generateIdealPortrait } from '@/services/profile/idealPortraitService';
+import {
+  generateProfileAvatar,
+  regenerateProfileAvatarFromScan,
+  saveProfileAvatar,
+} from '@/services/profile/scanProfileAvatar';
 import { persistProfilePhoto } from '@/services/profile/persistProfilePhoto';
 import { syncUserAvatarFromLocal } from '@/services/profile/userAvatarSync';
 import { useAuthStore } from '@/store/authStore';
@@ -17,9 +21,12 @@ import { useSkinStore } from '@/store/skinStore';
 export type ProfilePhotoSource = 'custom' | 'scan' | 'none';
 
 export function useProfilePhoto() {
+  const { locale } = useI18n();
   const userId = useAuthStore((s) => s.user?.id);
   const latestScan = useSkinStore((s) => s.latestAnalysis);
   const history = useSkinStore((s) => s.analysisHistory);
+  const profilePhotoRevision = useSkinStore((s) => s.profilePhotoRevision);
+  const profileAvatarGenerating = useSkinStore((s) => s.profileAvatarGenerating);
   const syncAttempted = useRef<string | null>(null);
 
   const [customPhoto, setCustomPhoto] = useState<StoredProfilePhoto | null>(null);
@@ -36,7 +43,7 @@ export function useProfilePhoto() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [profilePhotoRevision]);
 
   const firstScan = history.length > 0 ? history[history.length - 1] : null;
   const progressRatio = useMemo(() => {
@@ -49,6 +56,8 @@ export function useProfilePhoto() {
     customPhoto ? null : latestScan,
     { progressRatio },
   );
+
+  const avatarGenerating = enhancing || generating || profileAvatarGenerating;
 
   const displayUri =
     customPhoto?.idealUri ??
@@ -90,17 +99,16 @@ export function useProfilePhoto() {
     setEnhancing(true);
     try {
       const stored = await persistProfilePhoto(result.uri);
-      const enhanced = await generateIdealPortrait({
+      const cacheKey = `custom-${Date.now()}`;
+      const portrait = await generateProfileAvatar({
         imageUri: stored,
-        cacheKey: `custom-${Date.now()}`,
+        cacheKey,
+        locale,
         skinScore: latestScan?.skinScore ?? 68,
-        progressRatio,
+        skinType: latestScan?.skinTypeId ?? latestScan?.skinType,
+        styleSeed: userId ?? cacheKey,
       });
-      const photo: StoredProfilePhoto = {
-        rawUri: stored,
-        idealUri: enhanced.idealUri,
-      };
-      await saveProfilePhotoUri(photo);
+      const photo = await saveProfileAvatar(portrait);
       setCustomPhoto(photo);
       if (userId) {
         void syncUserAvatarFromLocal(userId, photo.idealUri, { force: true });
@@ -109,12 +117,35 @@ export function useProfilePhoto() {
     } finally {
       setEnhancing(false);
     }
-  }, [latestScan?.skinScore, progressRatio, userId]);
+  }, [
+    latestScan?.skinScore,
+    latestScan?.skinType,
+    latestScan?.skinTypeId,
+    locale,
+    userId,
+  ]);
 
   const useLatestScanPhoto = useCallback(async () => {
-    await clearProfilePhotoUri();
-    setCustomPhoto(null);
-  }, []);
+    if (!latestScan) {
+      await clearProfilePhotoUri();
+      setCustomPhoto(null);
+      return;
+    }
+
+    setEnhancing(true);
+    try {
+      const portrait = await regenerateProfileAvatarFromScan(latestScan, locale);
+      setCustomPhoto({
+        rawUri: portrait.rawUri,
+        idealUri: portrait.idealUri,
+      });
+      if (userId) {
+        void syncUserAvatarFromLocal(userId, portrait.idealUri, { force: true });
+      }
+    } finally {
+      setEnhancing(false);
+    }
+  }, [latestScan, locale, userId]);
 
   return {
     displayUri,
@@ -127,7 +158,7 @@ export function useProfilePhoto() {
     scoreDelta,
     hasScans: history.length > 0,
     ready,
-    enhancing: enhancing || generating,
+    enhancing: avatarGenerating,
     pickFromGallery,
     useLatestScanPhoto,
   };

@@ -11,6 +11,18 @@ const CAPTURE_HINT_KEYS: Record<FacePoseId, TranslationKey> = {
   left: 'scan.captureLeftReady',
 };
 
+const CAPTURE_STEP_TITLE_KEYS: Record<FacePoseId, TranslationKey> = {
+  front: 'scan.captureStepTitleFront',
+  right: 'scan.captureStepTitleRight',
+  left: 'scan.captureStepTitleLeft',
+};
+
+const CAPTURE_EMPHASIS_KEYS: Record<FacePoseId, TranslationKey> = {
+  front: 'scan.captureEmphasisFront',
+  right: 'scan.captureEmphasisRight',
+  left: 'scan.captureEmphasisLeft',
+};
+
 export type CapturePhotos = Partial<Record<FacePoseId, string>>;
 
 export function getCurrentCapturePose(stepIndex: number): FacePoseId {
@@ -19,6 +31,14 @@ export function getCurrentCapturePose(stepIndex: number): FacePoseId {
 
 export function getCaptureHintKey(stepIndex: number): TranslationKey {
   return CAPTURE_HINT_KEYS[getCurrentCapturePose(stepIndex)];
+}
+
+export function getCaptureStepTitleKey(stepIndex: number): TranslationKey {
+  return CAPTURE_STEP_TITLE_KEYS[getCurrentCapturePose(stepIndex)];
+}
+
+export function getCaptureEmphasisKey(stepIndex: number): TranslationKey {
+  return CAPTURE_EMPHASIS_KEYS[getCurrentCapturePose(stepIndex)];
 }
 
 export function getCompletedPoses(photos: CapturePhotos): FacePoseId[] {
@@ -35,8 +55,8 @@ export function getCaptureLabelKey(stepIndex: number): TranslationKey {
 
 export const CAPTURE_STEP_COUNT = CAPTURE_POSE_SEQUENCE.length;
 
-/** Brief pause between poses after a photo is taken */
-export const POSE_TRANSITION_MS = 420;
+/** Brief pause between steps after a photo is taken */
+export const POSE_TRANSITION_MS = 280;
 
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));

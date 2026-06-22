@@ -54,15 +54,27 @@ Point the app at local functions only for dev (optional): temporarily set `SUPAB
 
 ## 5. AI chat advisor
 
-The **AI Advisor** chat (`Home → Chat` or **Help & Support → Ask AI**) uses the same Gemini key via a second Edge Function:
+The **AI Advisor** chat uses the same Gemini key via `skin-chat`:
 
 ```bash
 supabase functions deploy skin-chat
 ```
 
-When `GEMINI_ANALYSIS` is `"true"`, chat sends conversation history plus scan/quiz/routine context to `POST {SUPABASE_URL}/functions/v1/skin-chat`. If Gemini is unavailable, the app falls back to built-in tips.
+## 6. Profile avatar (Gemini portrait)
 
-## 6. Privacy
+After a user's **first scan** (or when they pick a new profile photo), the app calls `enhance-portrait` to create an AI-styled avatar from their real photo:
+
+- Keeps the **same person** (face identity preserved)
+- Refreshes **hairstyle** and **outfit** for a polished wellness look
+- Picks a consistent style preset per user/scan via `styleSeed`
+
+```bash
+supabase functions deploy enhance-portrait
+```
+
+Uses model **`gemini-2.5-flash-image`** (requires image output enabled on your Gemini API key).
+
+## 7. Privacy
 
 - Add consent copy in Privacy settings before production (face photos processed by Google Gemini).
 - Images are not stored by the Edge Function after analysis.

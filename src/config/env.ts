@@ -59,6 +59,12 @@ export function getGeminiChatUrl(): string | null {
   return `${base.replace(/\/$/, '')}/functions/v1/skin-chat`;
 }
 
+export function getGeminiPortraitUrl(): string | null {
+  const base = getSupabaseUrl();
+  if (!base || !isGeminiAnalysisEnabled()) return null;
+  return `${base.replace(/\/$/, '')}/functions/v1/enhance-portrait`;
+}
+
 /** RevenueCat entitlement identifier (dashboard → Entitlements). */
 export function getRevenueCatEntitlementId(): string {
   return readExtra('REVENUECAT_ENTITLEMENT_ID') ?? 'pro';
@@ -80,4 +86,9 @@ export function getRevenueCatApiKey(): string | null {
 
 export function isRevenueCatConfigured(): boolean {
   return Boolean(getRevenueCatApiKey());
+}
+
+/** Dev-only mock unlock when RevenueCat keys are not set (Expo Go / UI testing). */
+export function allowMockSubscriptions(): boolean {
+  return __DEV__ && !isRevenueCatConfigured();
 }

@@ -33,3 +33,7 @@ export async function savePremiumStatus(
     [PLAN_KEY, planId ?? ''],
   ]);
 }
+
+export async function clearPremiumStatus(): Promise<void> {
+  await AsyncStorage.multiRemove([PREMIUM_KEY, PLAN_KEY]);
+}

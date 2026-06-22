@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -24,10 +25,15 @@ import {
   type SubscriptionPlan,
   type SubscriptionPlanId,
 } from '@/config/subscriptionPlans';
-import { isRevenueCatConfigured } from '@/config/env';
+import { allowMockSubscriptions, isRevenueCatConfigured } from '@/config/env';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
+import {
+  getRevenueCatCustomerInfo,
+  getRevenueCatPlatformLabel,
+  getSubscriptionManagementUrl,
+} from '@/services/subscription/revenueCat';
 import {
   SubscriptionPurchaseError,
   useSubscriptionStore,
@@ -180,6 +186,23 @@ function createStyles(colors: AppColors) {
       textAlign: 'center',
       lineHeight: 16,
     },
+    legalLinks: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      flexWrap: 'wrap',
+      gap: spacing.md,
+    },
+    legalLink: {
+      ...typography.body,
+      fontSize: 12,
+      color: colors.primary,
+    },
+    mockHint: {
+      ...typography.body,
+      fontSize: 12,
+      color: colors.warning,
+      textAlign: 'center',
+    },
     includes: {
       ...flatCard(colors, false),
       gap: spacing.sm,
@@ -269,6 +292,9 @@ export function PaywallScreen() {
   const isManageMode = route.params?.mode === 'manage' || (isPremium && !result);
   const showTeaser = Boolean(result) && !isPremium;
   const usesStore = isRevenueCatConfigured();
+  const mockMode = allowMockSubscriptions();
+  const showBack = isManageMode || !result;
+  const storeLabel = getRevenueCatPlatformLabel();
 
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>(
     activePlanId ?? 'monthly',
@@ -353,6 +379,28 @@ export function PaywallScreen() {
     }
   }, [finishSuccess, restorePurchases, t]);
 
+  const onManageInStore = useCallback(async () => {
+    try {
+      const info = await getRevenueCatCustomerInfo();
+      const url = info ? getSubscriptionManagementUrl(info) : null;
+      if (!url) {
+        Alert.alert(t('paywall.title'), t('paywall.manageUnavailable'));
+        return;
+      }
+      await Linking.openURL(url);
+    } catch {
+      Alert.alert(t('paywall.title'), t('paywall.manageUnavailable'));
+    }
+  }, [t]);
+
+  const openTerms = useCallback(() => {
+    void Linking.openURL('https://skinsense.app/terms');
+  }, []);
+
+  const openPrivacy = useCallback(() => {
+    void Linking.openURL('https://skinsense.app/privacy');
+  }, []);
+
   const includeKeys: TranslationKey[] = [
     'paywall.includeScore',
     'paywall.includeRoutine',
@@ -365,7 +413,11 @@ export function PaywallScreen() {
       <StatusBar style={statusBarStyle} />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
-        <ScreenBackButton onPress={() => navigation.goBack()} />
+        {showBack ? (
+          <ScreenBackButton onPress={() => navigation.goBack()} />
+        ) : (
+          <View style={{ width: 40 }} />
+        )}
         <Text style={styles.headerTitle}>{t('paywall.title')}</Text>
       </View>
 
@@ -383,7 +435,10 @@ export function PaywallScreen() {
           <Text style={styles.subtitle}>
             {isManageMode ? t('paywall.manageSubheadline') : t('paywall.subheadline')}
           </Text>
-          {usesStore ? <Text style={styles.storeHint}>{t('paywall.storePrices')}</Text> : null}
+          {usesStore ? (
+            <Text style={styles.storeHint}>{t('paywall.storePrices', { store: storeLabel })}</Text>
+          ) : null}
+          {mockMode ? <Text style={styles.mockHint}>{t('paywall.mockModeHint')}</Text> : null}
         </View>
 
         {showTeaser && result ? <TeaserReportPreview result={result} /> : null}
@@ -435,7 +490,27 @@ export function PaywallScreen() {
           <Text style={styles.restoreLabel}>{t('paywall.restore')}</Text>
         </Pressable>
 
+        {isManageMode && usesStore ? (
+          <Pressable
+            style={styles.restoreBtn}
+            onPress={() => void onManageInStore()}
+            disabled={loading}
+          >
+            <Text style={styles.restoreLabel}>
+              {t('paywall.manageInStore', { store: storeLabel })}
+            </Text>
+          </Pressable>
+        ) : null}
+
         <Text style={styles.legal}>{t('paywall.legal')}</Text>
+        <View style={styles.legalLinks}>
+          <Pressable onPress={openTerms}>
+            <Text style={styles.legalLink}>{t('paywall.termsLink')}</Text>
+          </Pressable>
+          <Pressable onPress={openPrivacy}>
+            <Text style={styles.legalLink}>{t('paywall.privacyLink')}</Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );

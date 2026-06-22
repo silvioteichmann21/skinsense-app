@@ -37,11 +37,12 @@ import { FaceScanGuide } from '@/components/scan/FaceScanGuide';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
-import { CAPTURE_POSE_SEQUENCE, getCapturePhase } from '@/components/scan/facePoseScan';
+import { CAPTURE_POSE_SEQUENCE } from '@/components/scan/facePoseScan';
 import {
   CAPTURE_STEP_COUNT,
   delay,
-  getCaptureHintKey,
+  getCaptureEmphasisKey,
+  getCaptureStepTitleKey,
   getCompletedPoses,
   getCurrentCapturePose,
   POSE_TRANSITION_MS,
@@ -168,6 +169,14 @@ function createStyles(colors: AppColors) {
     color: colors.onPrimaryContainer,
     lineHeight: 23,
     letterSpacing: 0,
+  },
+  hintTextEmphasis: {
+    ...typography.caption,
+    color: 'rgba(234,247,239,0.88)',
+    letterSpacing: 0,
+    textTransform: 'none',
+    fontSize: 13,
+    lineHeight: 18,
   },
   hintText: {
     ...typography.caption,
@@ -335,6 +344,12 @@ export function CameraScreen() {
   const [stepJustCaptured, setStepJustCaptured] = useState(false);
   const [isSnapping, setIsSnapping] = useState(false);
   const scanPhotosRef = useRef<CapturePhotos>({});
+  const captureStepRef = useRef(0);
+  const cameraBusyRef = useRef(false);
+
+  useEffect(() => {
+    captureStepRef.current = captureStep;
+  }, [captureStep]);
 
   const flareOpacity = useSharedValue(0);
   const shutterPulse = useSharedValue(0);
@@ -392,6 +407,7 @@ export function CameraScreen() {
   const resetScanSession = useCallback(() => {
     setScanActive(false);
     setCaptureStep(0);
+    captureStepRef.current = 0;
     setCapturePhotos({});
     scanPhotosRef.current = {};
     setStepJustCaptured(false);
@@ -399,45 +415,81 @@ export function CameraScreen() {
     setCapturing(false);
   }, []);
 
+  const withCameraLock = useCallback(
+    async <T,>(fn: () => Promise<T>): Promise<T | null> => {
+      if (cameraBusyRef.current) return null;
+      cameraBusyRef.current = true;
+      try {
+        return await fn();
+      } finally {
+        cameraBusyRef.current = false;
+      }
+    },
+    [],
+  );
+
   const takeScanPhoto = useCallback(async (): Promise<string | null> => {
     setIsSnapping(true);
     if (flashOn) {
       triggerFlare();
     }
     try {
-      const photo = await cameraRef.current?.takePictureAsync({
-        quality: 0.92,
-        shutterSound: false,
-      });
-      return photo?.uri ?? null;
+      return (
+        (await withCameraLock(async () => {
+          const photo = await cameraRef.current?.takePictureAsync({
+            quality: 0.92,
+            shutterSound: false,
+            skipProcessing: true,
+          });
+          return photo?.uri ?? null;
+        })) ?? null
+      );
     } finally {
       setIsSnapping(false);
     }
-  }, [flashOn, triggerFlare]);
+  }, [flashOn, triggerFlare, withCameraLock]);
 
-  const selectCaptureStep = useCallback((pose: FacePoseId) => {
-    const stepIndex = CAPTURE_POSE_SEQUENCE.indexOf(pose);
-    if (stepIndex < 0) return;
-
+  const beginScanSession = useCallback(() => {
     setScanActive(true);
-    setCaptureStep(stepIndex);
+    setCaptureStep(0);
+    captureStepRef.current = 0;
+    setCapturePhotos({});
+    scanPhotosRef.current = {};
     setStepJustCaptured(false);
   }, []);
 
-  /** Shutter tap = capture the selected step; step dots jump between angles. */
-  const captureScanStep = useCallback(async () => {
-    if (capturing || isSnapping) return;
+  const finishStepCapture = useCallback(
+    async (step: number, pose: FacePoseId, uri: string): Promise<boolean> => {
+      if (captureStepRef.current !== step) return false;
+      if (scanPhotosRef.current[pose]) return false;
 
-    if (!scanActive) {
-      setScanActive(true);
-      setCaptureStep(0);
-      setCapturePhotos({});
-      scanPhotosRef.current = {};
+      const nextPhotos: CapturePhotos = { ...scanPhotosRef.current, [pose]: uri };
+      scanPhotosRef.current = nextPhotos;
+      setCapturePhotos(nextPhotos);
+      setStepJustCaptured(true);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+      if (step >= CAPTURE_STEP_COUNT - 1) {
+        setScanActive(false);
+        await goToAnalyzing(nextPhotos);
+        return true;
+      }
+
+      await delay(POSE_TRANSITION_MS);
+      if (captureStepRef.current !== step) return false;
+
       setStepJustCaptured(false);
-    }
+      setCaptureStep(step + 1);
+      captureStepRef.current = step + 1;
+      return true;
+    },
+    [goToAnalyzing],
+  );
 
-    const step = captureStep;
+  const captureScanStep = useCallback(async () => {
+    const step = captureStepRef.current;
     const pose = getCurrentCapturePose(step);
+    if (scanPhotosRef.current[pose]) return;
 
     setCapturing(true);
     try {
@@ -446,33 +498,27 @@ export function CameraScreen() {
         Alert.alert(t('scan.analysisFailed'), t('scan.captureFailed'));
         return;
       }
-
-      const nextPhotos: CapturePhotos = { ...scanPhotosRef.current, [pose]: uri };
-      scanPhotosRef.current = nextPhotos;
-      setCapturePhotos(nextPhotos);
-      setStepJustCaptured(true);
-      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-      const isLastStep = step >= CAPTURE_STEP_COUNT - 1;
-      if (isLastStep) {
-        if (!nextPhotos.front) {
-          Alert.alert(t('scan.analysisFailed'), t('scan.captureFailed'));
-          return;
-        }
-        setScanActive(false);
-        await goToAnalyzing(nextPhotos);
-        return;
-      }
-
-      await delay(POSE_TRANSITION_MS);
-      setStepJustCaptured(false);
-      setCaptureStep(step + 1);
-    } catch {
-      Alert.alert(t('scan.analysisFailed'), t('scan.captureFailed'));
+      await finishStepCapture(step, pose, uri);
     } finally {
       setCapturing(false);
     }
-  }, [captureStep, capturing, goToAnalyzing, isSnapping, scanActive, t, takeScanPhoto]);
+  }, [finishStepCapture, t, takeScanPhoto]);
+
+  const selectCaptureStep = useCallback(
+    (pose: FacePoseId) => {
+      if (capturing || isSnapping) return;
+      const stepIndex = CAPTURE_POSE_SEQUENCE.indexOf(pose);
+      if (stepIndex < 0) return;
+
+      if (!scanActive) {
+        beginScanSession();
+      }
+      setCaptureStep(stepIndex);
+      captureStepRef.current = stepIndex;
+      setStepJustCaptured(false);
+    },
+    [beginScanSession, capturing, isSnapping, scanActive],
+  );
 
   const handleCapture = async () => {
     if (mode === 'video') {
@@ -483,6 +529,9 @@ export function CameraScreen() {
     if (capturing || isSnapping) return;
 
     if (mode === 'scan') {
+      if (!scanActive) {
+        beginScanSession();
+      }
       await captureScanStep();
       return;
     }
@@ -533,14 +582,19 @@ export function CameraScreen() {
       ? 'scan.captureScanning'
       : stepJustCaptured
         ? 'scan.captureStepDone'
-        : getCaptureHintKey(captureStep);
+        : getCaptureEmphasisKey(captureStep);
   const shutterBusy = capturing || isSnapping;
-  const currentPhase = getCapturePhase(currentCapturePose ?? 'front');
   const activeModeLabelKey = MODES.find((item) => item.id === mode)?.labelKey ?? 'scan.modeScan';
   const consoleIcon =
     mode === 'scan' ? 'face-recognition' : mode === 'selfie' ? 'camera-outline' : 'video-outline';
-  const consoleTitle = mode === 'scan' ? t(currentPhase.labelKey) : t(activeModeLabelKey);
+  const consoleTitle =
+    mode === 'scan' && scanActive
+      ? t(getCaptureStepTitleKey(captureStep))
+      : mode === 'scan'
+        ? t('scan.title')
+        : t(activeModeLabelKey);
   const consoleHint = mode === 'scan' ? t(scanHintKey) : t('scan.holdStill');
+  const hintEmphasis = mode === 'scan' && scanActive && !stepJustCaptured && !isSnapping;
 
   if (!permission) {
     return (
@@ -676,8 +730,11 @@ export function CameraScreen() {
                 {consoleTitle}
               </Text>
               <Text
-                style={[styles.hintText, { fontSize: Math.max(11, scanLayout.hintFontSize - 1) }]}
-                numberOfLines={1}
+                style={[
+                  hintEmphasis ? styles.hintTextEmphasis : styles.hintText,
+                  { fontSize: Math.max(11, scanLayout.hintFontSize - (hintEmphasis ? 0 : 1)) },
+                ]}
+                numberOfLines={hintEmphasis ? 3 : 2}
               >
                 {consoleHint}
               </Text>

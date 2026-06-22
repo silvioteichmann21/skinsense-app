@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -16,6 +16,7 @@ import { FaceMap } from '@/components/report/FaceMap';
 import { SkinScoreRing } from '@/components/report/SkinScoreRing';
 import type { RootStackParamList } from '@/core/navigation/types';
 import { useReviewPrompt } from '@/hooks/useReviewPrompt';
+import { usePremiumAccess } from '@/hooks/usePremiumAccess';
 import { useLocalizedSkinReport } from '@/i18n/content/useLocalizedSkinReport';
 import { useSkinStore } from '@/store/skinStore';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -267,7 +268,13 @@ export function SkinReportScreen() {
   const result = useLocalizedSkinReport(rawResult);
   const scanDateLabel = useScanDateLabel(result.scannedAt);
   const totalScans = useSkinStore((s) => s.analysisHistory.length);
+  const { isPremium, hydrated } = usePremiumAccess();
   const { tryShowPrompt } = useReviewPrompt();
+
+  useEffect(() => {
+    if (!hydrated || isPremium) return;
+    navigation.replace('Paywall', { result: rawResult, mode: 'checkout' });
+  }, [hydrated, isPremium, navigation, rawResult]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -310,6 +317,15 @@ export function SkinReportScreen() {
 
   const footerBottom = Math.max(insets.bottom, spacing.base);
   const nextCardWidth = useHorizontalCardWidth(180, 0.46);
+
+  if (!hydrated || !isPremium) {
+    return (
+      <View style={[styles.root, { alignItems: 'center', justifyContent: 'center' }]}>
+        <StatusBar style={statusBarStyle} />
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
