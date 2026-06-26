@@ -129,7 +129,15 @@ export const useSubscriptionStore = create<SubscriptionStore>((set, get) => ({
       }
 
       try {
-        const { planId: purchasedPlanId } = await purchaseRevenueCatPackage(pkg);
+        const { customerInfo, planId: purchasedPlanId, isPremium } =
+          await purchaseRevenueCatPackage(pkg, planId);
+
+        if (!isPremium) {
+          throw new SubscriptionPurchaseError(
+            'Purchase completed but SkinSense Pro is not active. Check entitlement mapping in RevenueCat.',
+          );
+        }
+
         await applyPremiumState(true, purchasedPlanId ?? planId);
         return;
       } catch (e: unknown) {

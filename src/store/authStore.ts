@@ -173,6 +173,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       await authSignOut();
       set({ session: null, user: null, profile: null });
       await useSubscriptionStore.getState().resetForUserSwitch();
+      await useSubscriptionStore.getState().initialize(null);
       await reloadUserLocalData();
     } finally {
       set({ isLoading: false });

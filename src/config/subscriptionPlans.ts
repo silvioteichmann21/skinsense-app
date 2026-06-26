@@ -1,10 +1,20 @@
 export type SubscriptionPlanId = 'weekly' | 'monthly' | 'quarterly';
 
-/** App Store / Play Console product IDs — must match RevenueCat dashboard. */
+/**
+ * RevenueCat / store product identifiers.
+ * Configure matching products in App Store Connect, Google Play, and RevenueCat dashboard.
+ */
 export const REVENUECAT_PRODUCT_IDS: Record<SubscriptionPlanId, string> = {
-  weekly: 'skinsense_weekly',
-  monthly: 'skinsense_monthly',
-  quarterly: 'skinsense_quarterly',
+  weekly: 'weekly',
+  monthly: 'monthly',
+  quarterly: '3months',
+};
+
+/** Legacy product IDs (keep mapping for existing subscribers). */
+export const LEGACY_REVENUECAT_PRODUCT_IDS: Record<string, SubscriptionPlanId> = {
+  skinsense_weekly: 'weekly',
+  skinsense_monthly: 'monthly',
+  skinsense_quarterly: 'quarterly',
 };
 
 export type SubscriptionPlan = {

@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -17,7 +18,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TeaserReportPreview } from '@/components/subscription/TeaserReportPreview';
+import { CurrentPlanCard } from '@/components/subscription/CurrentPlanCard';
 import { GradientButton } from '@/components/ui/GradientButton';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { ScreenBackButton } from '@/components/ui/ScreenBackButton';
 import {
   SUBSCRIPTION_PLANS,
@@ -27,13 +30,17 @@ import {
 } from '@/config/subscriptionPlans';
 import { allowMockSubscriptions, isRevenueCatConfigured } from '@/config/env';
 import type { RootStackParamList } from '@/core/navigation/types';
+import type { SkinAnalysisResult } from '@/types/skinAnalysis';
 import { useTranslation } from '@/i18n/useTranslation';
 import type { TranslationKey } from '@/i18n/useTranslation';
 import {
+  getActiveSubscriptionDetails,
   getRevenueCatCustomerInfo,
   getRevenueCatPlatformLabel,
   getSubscriptionManagementUrl,
+  type ActiveSubscriptionDetails,
 } from '@/services/subscription/revenueCat';
+import { presentRevenueCatCustomerCenter } from '@/services/subscription/revenueCatUI';
 import {
   SubscriptionPurchaseError,
   useSubscriptionStore,
@@ -52,6 +59,13 @@ import {
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Paywall'>;
 type Route = RouteProp<RootStackParamList, 'Paywall'>;
 
+const BENEFIT_KEYS: TranslationKey[] = [
+  'paywall.includeScore',
+  'paywall.includeRoutine',
+  'paywall.includeChat',
+  'paywall.includeProgress',
+];
+
 function createStyles(colors: AppColors) {
   return StyleSheet.create({
     root: {
@@ -62,91 +76,112 @@ function createStyles(colors: AppColors) {
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: layout.screenPaddingX,
-      paddingBottom: spacing.md,
+      paddingBottom: spacing.sm,
+      gap: spacing.sm,
+    },
+    headerTitleWrap: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
     },
     headerTitle: {
       ...typography.h2,
-      flex: 1,
-      marginLeft: spacing.sm,
       color: colors.textPrimary,
+    },
+    proBadge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 3,
+      borderRadius: radius.full,
+      backgroundColor: colors.primaryContainer,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.primary,
+    },
+    proBadgeText: {
+      ...typography.label,
+      fontSize: 10,
+      color: colors.primary,
+      letterSpacing: 0.6,
     },
     scroll: {
       paddingHorizontal: layout.screenPaddingX,
       gap: spacing.lg,
     },
+    scrollCompact: {
+      gap: spacing.md,
+    },
     hero: {
-      gap: spacing.sm,
+      gap: spacing.xs,
     },
     title: {
       ...typography.h1,
-      fontSize: 26,
+      fontSize: 24,
       color: colors.textPrimary,
-      letterSpacing: -0.5,
+      letterSpacing: -0.4,
     },
     subtitle: {
-      ...typography.bodyLg,
+      ...typography.body,
       color: colors.textSecondary,
-      lineHeight: 24,
+      lineHeight: 22,
     },
     storeHint: {
       ...typography.body,
       fontSize: 12,
       color: colors.textTertiary,
     },
+    sectionLabel: {
+      ...typography.label,
+      color: colors.textSecondary,
+      marginBottom: -spacing.xs,
+    },
+    benefitRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    benefitPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 6,
+      borderRadius: radius.full,
+      backgroundColor: colors.surfaceMuted,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.hairline,
+    },
+    benefitPillText: {
+      ...typography.body,
+      fontSize: 12,
+      color: colors.textPrimary,
+    },
     plans: {
-      gap: spacing.md,
+      gap: spacing.sm,
     },
     planCard: {
       ...flatCard(colors),
       borderWidth: 1.5,
       borderColor: colors.borderMuted,
-      padding: spacing.lg,
-      gap: spacing.xs,
+      paddingVertical: spacing.md,
+      paddingHorizontal: spacing.lg,
     },
     planCardSelected: {
       borderColor: colors.primary,
       backgroundColor: colors.primaryContainer,
     },
     planCardActive: {
-      borderColor: colors.primaryPale,
+      borderColor: colors.primary,
+    },
+    planCardCurrent: {
+      borderColor: colors.primaryLight,
+      backgroundColor: colors.surfaceMuted,
     },
     planRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
       gap: spacing.md,
     },
-    planLeft: {
-      flex: 1,
-      minWidth: 0,
-      gap: 2,
-    },
-    planPeriod: {
-      ...typography.h3,
-      color: colors.textPrimary,
-    },
-    planPrice: {
-      ...typography.body,
-      color: colors.textSecondary,
-    },
-    badge: {
-      alignSelf: 'flex-start',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 3,
-      borderRadius: radius.full,
-      backgroundColor: colors.primary,
-      marginTop: spacing.xs,
-    },
-    badgeActive: {
-      backgroundColor: colors.primaryLight,
-    },
-    badgeText: {
-      ...typography.label,
-      fontSize: 10,
-      color: colors.textInverse,
-      textTransform: 'uppercase',
-    },
-    radio: {
+    planRadio: {
       width: 22,
       height: 22,
       borderRadius: radius.full,
@@ -155,53 +190,56 @@ function createStyles(colors: AppColors) {
       alignItems: 'center',
       justifyContent: 'center',
     },
-    radioSelected: {
-      borderColor: colors.primary,
+    planRadioSelected: {
+      borderColor: colors.primaryLight,
+      backgroundColor: colors.primaryLight,
     },
-    radioDot: {
-      width: 10,
-      height: 10,
+    planBody: {
+      flex: 1,
+      minWidth: 0,
+      gap: 2,
+    },
+    planPeriod: {
+      ...typography.h3,
+      fontSize: 16,
+      color: colors.textPrimary,
+    },
+    planPeriodSelected: {
+      color: colors.onPrimaryContainer,
+    },
+    planMeta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+    },
+    planPrice: {
+      ...typography.h3,
+      fontSize: 17,
+      color: colors.textPrimary,
+    },
+    planPriceSelected: {
+      color: colors.onPrimaryContainer,
+    },
+    badge: {
+      paddingHorizontal: spacing.sm,
+      paddingVertical: 2,
       borderRadius: radius.full,
       backgroundColor: colors.primary,
     },
-    cta: {
-      width: '100%',
+    badgeSelected: {
+      backgroundColor: 'rgba(255,255,255,0.22)',
     },
-    ctaLabel: {
-      ...typography.h3,
+    badgeActive: {
+      backgroundColor: colors.primaryLight,
+    },
+    badgeText: {
+      ...typography.label,
+      fontSize: 9,
       color: colors.textInverse,
+      textTransform: 'uppercase',
     },
-    restoreBtn: {
-      alignSelf: 'center',
-      paddingVertical: spacing.sm,
-    },
-    restoreLabel: {
-      ...typography.body,
-      color: colors.primary,
-    },
-    legal: {
-      ...typography.body,
-      fontSize: 11,
-      color: colors.textTertiary,
-      textAlign: 'center',
-      lineHeight: 16,
-    },
-    legalLinks: {
-      flexDirection: 'row',
-      justifyContent: 'center',
-      flexWrap: 'wrap',
-      gap: spacing.md,
-    },
-    legalLink: {
-      ...typography.body,
-      fontSize: 12,
-      color: colors.primary,
-    },
-    mockHint: {
-      ...typography.body,
-      fontSize: 12,
-      color: colors.warning,
-      textAlign: 'center',
+    badgeTextSelected: {
+      color: colors.onPrimaryContainer,
     },
     includes: {
       ...flatCard(colors, false),
@@ -218,26 +256,79 @@ function createStyles(colors: AppColors) {
       flex: 1,
       color: colors.textPrimary,
     },
+    footer: {
+      borderTopWidth: StyleSheet.hairlineWidth,
+      borderTopColor: colors.hairline,
+      backgroundColor: colors.background,
+      paddingHorizontal: layout.screenPaddingX,
+      paddingTop: spacing.md,
+      gap: spacing.sm,
+    },
+    cta: {
+      width: '100%',
+    },
+    ctaLabel: {
+      ...typography.h3,
+      color: colors.textInverse,
+    },
+    footerLinks: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: spacing.lg,
+    },
+    footerLink: {
+      ...typography.body,
+      fontSize: 13,
+      color: colors.primary,
+    },
+    legal: {
+      ...typography.body,
+      fontSize: 10,
+      color: colors.textTertiary,
+      textAlign: 'center',
+      lineHeight: 14,
+    },
+    mockHint: {
+      ...typography.body,
+      fontSize: 12,
+      color: colors.warning,
+      textAlign: 'center',
+    },
+    plansLoading: {
+      paddingVertical: spacing.xl,
+      alignItems: 'center',
+    },
+    paywallFlex: {
+      flex: 1,
+    },
+    accentLine: {
+      height: 3,
+      borderRadius: radius.full,
+      marginHorizontal: layout.screenPaddingX,
+      marginBottom: spacing.sm,
+      opacity: 0.85,
+    },
   });
 }
 
 function PlanCard({
   plan,
   selected,
-  active,
+  isCurrentPlan,
   priceLabel,
   onSelect,
 }: {
   plan: SubscriptionPlan;
   selected: boolean;
-  active?: boolean;
+  isCurrentPlan?: boolean;
   priceLabel: string;
   onSelect: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
   const { t } = useTranslation();
 
-  const badgeLabel = active
+  const badgeLabel = isCurrentPlan
     ? t('paywall.activePlan')
     : plan.badgeKey === 'paywall.savePercent' && plan.savePercent
       ? t('paywall.savePercent', { percent: plan.savePercent })
@@ -246,64 +337,97 @@ function PlanCard({
         : null;
 
   return (
-    <Pressable
-      style={[
-        styles.planCard,
-        selected && styles.planCardSelected,
-        active && !selected && styles.planCardActive,
-      ]}
-      onPress={onSelect}
-    >
-      <View style={styles.planRow}>
-        <View style={styles.planLeft}>
-          <Text style={styles.planPeriod}>{t(plan.periodKey)}</Text>
-          <Text style={styles.planPrice}>{priceLabel}</Text>
-          {badgeLabel ? (
-            <View style={[styles.badge, active && styles.badgeActive]}>
-              <Text style={styles.badgeText}>{badgeLabel}</Text>
+    <PressableScale onPress={onSelect} pressedScale={0.98} haptic="selection">
+      <View
+        style={[
+          styles.planCard,
+          selected && styles.planCardSelected,
+          isCurrentPlan && !selected && styles.planCardCurrent,
+          isCurrentPlan && selected && styles.planCardActive,
+        ]}
+      >
+        <View style={styles.planRow}>
+          <View style={[styles.planRadio, selected && styles.planRadioSelected]}>
+            {selected ? (
+              <MaterialCommunityIcons name="check" size={14} color="#FFFFFF" />
+            ) : null}
+          </View>
+
+          <View style={styles.planBody}>
+            <View style={styles.planMeta}>
+              <Text style={[styles.planPeriod, selected && styles.planPeriodSelected]}>
+                {t(plan.periodKey)}
+              </Text>
+              {badgeLabel ? (
+                <View style={[styles.badge, selected && styles.badgeSelected, isCurrentPlan && styles.badgeActive]}>
+                  <Text style={[styles.badgeText, selected && styles.badgeTextSelected]}>
+                    {badgeLabel}
+                  </Text>
+                </View>
+              ) : null}
             </View>
-          ) : null}
-        </View>
-        <View style={[styles.radio, selected && styles.radioSelected]}>
-          {selected ? <View style={styles.radioDot} /> : null}
+          </View>
+
+          <Text style={[styles.planPrice, selected && styles.planPriceSelected]}>{priceLabel}</Text>
         </View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 
-export function PaywallScreen() {
+function PaywallCheckoutScreen({
+  result,
+  isManageMode,
+  showTeaser,
+  showBack,
+  onFinish,
+  onBack,
+}: {
+  result?: SkinAnalysisResult;
+  isManageMode: boolean;
+  showTeaser: boolean;
+  showBack: boolean;
+  onFinish: () => void;
+  onBack: () => void;
+}) {
   const styles = useThemedStyles(createStyles);
   const { colors, statusBarStyle } = useAppTheme();
-  const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const purchasePlan = useSubscriptionStore((s) => s.purchasePlan);
   const restorePurchases = useSubscriptionStore((s) => s.restorePurchases);
   const loadOfferings = useSubscriptionStore((s) => s.loadOfferings);
-  const isPremium = useSubscriptionStore((s) => s.isPremium);
+  const syncFromCustomerInfo = useSubscriptionStore((s) => s.syncFromCustomerInfo);
   const activePlanId = useSubscriptionStore((s) => s.activePlanId);
   const priceLabels = useSubscriptionStore((s) => s.priceLabels);
   const packages = useSubscriptionStore((s) => s.packages);
   const offeringsLoaded = useSubscriptionStore((s) => s.offeringsLoaded);
 
-  const result = route.params?.result;
-  const isManageMode = route.params?.mode === 'manage' || (isPremium && !result);
-  const showTeaser = Boolean(result) && !isPremium;
   const usesStore = isRevenueCatConfigured();
   const mockMode = allowMockSubscriptions();
-  const showBack = isManageMode || !result;
   const storeLabel = getRevenueCatPlatformLabel();
+  const compact = showTeaser && !isManageMode;
 
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlanId>(
     activePlanId ?? 'monthly',
   );
   const [loading, setLoading] = useState(false);
+  const [subscriptionDetails, setSubscriptionDetails] = useState<ActiveSubscriptionDetails | null>(
+    null,
+  );
 
   useEffect(() => {
     void loadOfferings();
   }, [loadOfferings]);
+
+  useEffect(() => {
+    if (!isManageMode || !usesStore) return;
+    void getRevenueCatCustomerInfo().then((info) => {
+      if (!info) return;
+      void syncFromCustomerInfo(info);
+      setSubscriptionDetails(getActiveSubscriptionDetails(info));
+    });
+  }, [isManageMode, usesStore, syncFromCustomerInfo]);
 
   useEffect(() => {
     if (activePlanId) {
@@ -311,21 +435,9 @@ export function PaywallScreen() {
     }
   }, [activePlanId]);
 
-  const finishSuccess = useCallback(() => {
-    if (isManageMode) {
-      navigation.goBack();
-      return;
-    }
-    if (result) {
-      navigation.replace('SkinReport', { result });
-    } else {
-      navigation.replace('Main');
-    }
-  }, [isManageMode, navigation, result]);
-
   const onContinue = useCallback(async () => {
     if (isManageMode && selectedPlan === activePlanId) {
-      navigation.goBack();
+      onBack();
       return;
     }
 
@@ -340,7 +452,7 @@ export function PaywallScreen() {
       if (isManageMode && selectedPlan !== activePlanId) {
         Alert.alert(t('paywall.title'), t('paywall.planUpdated'));
       }
-      finishSuccess();
+      onFinish();
     } catch (e) {
       if (e instanceof SubscriptionPurchaseError && e.userCancelled) return;
       Alert.alert(
@@ -352,15 +464,15 @@ export function PaywallScreen() {
     }
   }, [
     activePlanId,
-    finishSuccess,
     isManageMode,
     offeringsLoaded,
+    onBack,
+    onFinish,
     packages,
     purchasePlan,
     selectedPlan,
     t,
     usesStore,
-    navigation,
   ]);
 
   const onRestore = useCallback(async () => {
@@ -368,7 +480,7 @@ export function PaywallScreen() {
     try {
       const restored = await restorePurchases();
       if (restored) {
-        finishSuccess();
+        onFinish();
         return;
       }
       Alert.alert(t('paywall.restoreTitle'), t('paywall.restoreEmpty'));
@@ -377,7 +489,22 @@ export function PaywallScreen() {
     } finally {
       setLoading(false);
     }
-  }, [finishSuccess, restorePurchases, t]);
+  }, [onFinish, restorePurchases, t]);
+
+  const onOpenCustomerCenter = useCallback(async () => {
+    try {
+      await presentRevenueCatCustomerCenter({
+        callbacks: {
+          onRestoreCompleted: ({ customerInfo }) => {
+            void syncFromCustomerInfo(customerInfo);
+            setSubscriptionDetails(getActiveSubscriptionDetails(customerInfo));
+          },
+        },
+      });
+    } catch {
+      Alert.alert(t('paywall.title'), t('paywall.manageUnavailable'));
+    }
+  }, [syncFromCustomerInfo, t]);
 
   const onManageInStore = useCallback(async () => {
     try {
@@ -401,12 +528,13 @@ export function PaywallScreen() {
     void Linking.openURL('https://skinsense.app/privacy');
   }, []);
 
-  const includeKeys: TranslationKey[] = [
-    'paywall.includeScore',
-    'paywall.includeRoutine',
-    'paywall.includeChat',
-    'paywall.includeProgress',
-  ];
+  const ctaLabel = isManageMode
+    ? selectedPlan === activePlanId
+      ? t('paywall.done')
+      : t('paywall.updatePlan')
+    : compact
+      ? t('paywall.unlockReport')
+      : t('paywall.continue');
 
   return (
     <View style={styles.root}>
@@ -414,104 +542,192 @@ export function PaywallScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
         {showBack ? (
-          <ScreenBackButton onPress={() => navigation.goBack()} />
+          <ScreenBackButton onPress={onBack} />
         ) : (
           <View style={{ width: 40 }} />
         )}
-        <Text style={styles.headerTitle}>{t('paywall.title')}</Text>
+        <View style={styles.headerTitleWrap}>
+          <Text style={styles.headerTitle}>{t('paywall.title')}</Text>
+          <View style={styles.proBadge}>
+            <Text style={styles.proBadgeText}>PRO</Text>
+          </View>
+        </View>
       </View>
 
+      {compact ? (
+        <LinearGradient
+          colors={[colors.heroGradientStart, colors.heroGradientEnd]}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={styles.accentLine}
+        />
+      ) : null}
+
       <ScrollView
+        style={{ flex: 1 }}
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: insets.bottom + spacing.xxl },
+          compact && styles.scrollCompact,
+          { paddingBottom: spacing.md },
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.hero}>
-          <Text style={styles.title}>
-            {isManageMode ? t('paywall.manageHeadline') : t('paywall.headline')}
-          </Text>
-          <Text style={styles.subtitle}>
-            {isManageMode ? t('paywall.manageSubheadline') : t('paywall.subheadline')}
-          </Text>
-          {usesStore ? (
-            <Text style={styles.storeHint}>{t('paywall.storePrices', { store: storeLabel })}</Text>
-          ) : null}
-          {mockMode ? <Text style={styles.mockHint}>{t('paywall.mockModeHint')}</Text> : null}
-        </View>
-
         {showTeaser && result ? <TeaserReportPreview result={result} /> : null}
 
-        <View style={styles.includes}>
-          {includeKeys.map((key) => (
-            <View key={key} style={styles.includeRow}>
-              <MaterialCommunityIcons name="check-circle" size={18} color={colors.primary} />
-              <Text style={styles.includeText}>{t(key)}</Text>
-            </View>
-          ))}
-        </View>
+        {isManageMode && activePlanId ? (
+          <CurrentPlanCard
+            activePlanId={activePlanId}
+            priceLabel={priceLabels[activePlanId]}
+            expirationDate={subscriptionDetails?.expirationDate}
+            willRenew={subscriptionDetails?.willRenew}
+          />
+        ) : null}
 
-        <View style={styles.plans}>
-          {SUBSCRIPTION_PLANS.map((plan) => (
-            <PlanCard
-              key={plan.id}
-              plan={plan}
-              selected={selectedPlan === plan.id}
-              active={isManageMode && activePlanId === plan.id}
-              priceLabel={
-                priceLabels[plan.id] ??
-                `${formatPlanPrice(plan.priceUsd)} ${t('paywall.perPeriod')}`
-              }
-              onSelect={() => setSelectedPlan(plan.id)}
-            />
-          ))}
-        </View>
+        {isManageMode ? (
+          <View style={styles.hero}>
+            <Text style={styles.subtitle}>{t('paywall.manageSubheadline')}</Text>
+          </View>
+        ) : compact ? (
+          <View style={styles.hero}>
+            <Text style={styles.title}>{t('paywall.headline')}</Text>
+            <Text style={styles.subtitle}>{t('paywall.subheadline')}</Text>
+          </View>
+        ) : (
+          <View style={styles.hero}>
+            <Text style={styles.title}>{t('paywall.headline')}</Text>
+            <Text style={styles.subtitle}>{t('paywall.subheadline')}</Text>
+            {usesStore ? (
+              <Text style={styles.storeHint}>{t('paywall.storePrices', { store: storeLabel })}</Text>
+            ) : null}
+            {mockMode ? <Text style={styles.mockHint}>{t('paywall.mockModeHint')}</Text> : null}
+          </View>
+        )}
 
-        <GradientButton
-          style={styles.cta}
-          onPress={() => void onContinue()}
-          disabled={loading}
-        >
+        {compact && !isManageMode ? (
+          <View style={styles.benefitRow}>
+            {BENEFIT_KEYS.map((key) => (
+              <View key={key} style={styles.benefitPill}>
+                <MaterialCommunityIcons name="check-circle" size={13} color={colors.primary} />
+                <Text style={styles.benefitPillText}>{t(key)}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        {!compact && !isManageMode ? (
+          <View style={styles.includes}>
+            {BENEFIT_KEYS.map((key) => (
+              <View key={key} style={styles.includeRow}>
+                <MaterialCommunityIcons name="check-circle" size={18} color={colors.primary} />
+                <Text style={styles.includeText}>{t(key)}</Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
+
+        <Text style={styles.sectionLabel}>
+          {isManageMode ? t('paywall.changePlan') : t('paywall.choosePlan')}
+        </Text>
+
+        {!offeringsLoaded && usesStore ? (
+          <View style={styles.plansLoading}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : (
+          <View style={styles.plans}>
+            {SUBSCRIPTION_PLANS.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                selected={selectedPlan === plan.id}
+                isCurrentPlan={isManageMode && activePlanId === plan.id}
+                priceLabel={
+                  priceLabels[plan.id] ??
+                  formatPlanPrice(plan.priceUsd)
+                }
+                onSelect={() => setSelectedPlan(plan.id)}
+              />
+            ))}
+          </View>
+        )}
+
+        {isManageMode && usesStore ? (
+          <>
+            <Pressable onPress={() => void onOpenCustomerCenter()} disabled={loading}>
+              <Text style={[styles.footerLink, { textAlign: 'center' }]}>
+                {t('paywall.customerCenter')}
+              </Text>
+            </Pressable>
+            <Pressable onPress={() => void onManageInStore()} disabled={loading}>
+              <Text style={[styles.footerLink, { textAlign: 'center' }]}>
+                {t('paywall.manageInStore', { store: storeLabel })}
+              </Text>
+            </Pressable>
+          </>
+        ) : null}
+      </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
+        <GradientButton style={styles.cta} onPress={() => void onContinue()} disabled={loading}>
           {loading ? (
             <ActivityIndicator color={colors.textInverse} />
           ) : (
-            <Text style={styles.ctaLabel}>
-              {isManageMode
-                ? selectedPlan === activePlanId
-                  ? t('paywall.done')
-                  : t('paywall.updatePlan')
-                : t('paywall.continue')}
-            </Text>
+            <Text style={styles.ctaLabel}>{ctaLabel}</Text>
           )}
         </GradientButton>
 
-        <Pressable style={styles.restoreBtn} onPress={() => void onRestore()} disabled={loading}>
-          <Text style={styles.restoreLabel}>{t('paywall.restore')}</Text>
-        </Pressable>
-
-        {isManageMode && usesStore ? (
-          <Pressable
-            style={styles.restoreBtn}
-            onPress={() => void onManageInStore()}
-            disabled={loading}
-          >
-            <Text style={styles.restoreLabel}>
-              {t('paywall.manageInStore', { store: storeLabel })}
-            </Text>
+        <View style={styles.footerLinks}>
+          <Pressable onPress={() => void onRestore()} disabled={loading}>
+            <Text style={styles.footerLink}>{t('paywall.restore')}</Text>
           </Pressable>
-        ) : null}
-
-        <Text style={styles.legal}>{t('paywall.legal')}</Text>
-        <View style={styles.legalLinks}>
           <Pressable onPress={openTerms}>
-            <Text style={styles.legalLink}>{t('paywall.termsLink')}</Text>
+            <Text style={styles.footerLink}>{t('paywall.termsLink')}</Text>
           </Pressable>
           <Pressable onPress={openPrivacy}>
-            <Text style={styles.legalLink}>{t('paywall.privacyLink')}</Text>
+            <Text style={styles.footerLink}>{t('paywall.privacyLink')}</Text>
           </Pressable>
         </View>
-      </ScrollView>
+
+        <Text style={styles.legal}>{t('paywall.legal')}</Text>
+      </View>
     </View>
+  );
+}
+
+export function PaywallScreen() {
+  const navigation = useNavigation<Nav>();
+  const route = useRoute<Route>();
+  const isPremium = useSubscriptionStore((s) => s.isPremium);
+
+  const result = route.params?.result;
+  const isManageMode = route.params?.mode === 'manage' || (isPremium && !result);
+  const showTeaser = Boolean(result) && !isPremium;
+  const showBack = isManageMode || !result;
+
+  const finishSuccess = useCallback(() => {
+    if (isManageMode) {
+      navigation.goBack();
+      return;
+    }
+    if (result) {
+      navigation.replace('SkinReport', { result });
+    } else {
+      navigation.replace('Main');
+    }
+  }, [isManageMode, navigation, result]);
+
+  const onBack = useCallback(() => {
+    navigation.goBack();
+  }, [navigation]);
+
+  return (
+    <PaywallCheckoutScreen
+      result={result}
+      isManageMode={isManageMode}
+      showTeaser={showTeaser}
+      showBack={showBack}
+      onFinish={finishSuccess}
+      onBack={onBack}
+    />
   );
 }

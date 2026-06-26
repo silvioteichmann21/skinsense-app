@@ -65,17 +65,28 @@ export function getGeminiPortraitUrl(): string | null {
   return `${base.replace(/\/$/, '')}/functions/v1/enhance-portrait`;
 }
 
-/** RevenueCat entitlement identifier (dashboard → Entitlements). */
+/** RevenueCat entitlement identifier(s) — dashboard → Entitlements. */
 export function getRevenueCatEntitlementId(): string {
-  return readExtra('REVENUECAT_ENTITLEMENT_ID') ?? 'pro';
+  return readExtra('REVENUECAT_ENTITLEMENT_ID') ?? 'SkinSense Pro';
+}
+
+/** All entitlement IDs to check (primary + common aliases). */
+export function getRevenueCatEntitlementIds(): string[] {
+  const primary = getRevenueCatEntitlementId();
+  const aliases = ['SkinSense Pro', 'pro', 'premium'];
+  return [...new Set([primary, ...aliases])];
+}
+
+export function getRevenueCatSharedApiKey(): string | null {
+  return readExtra('REVENUECAT_API_KEY');
 }
 
 export function getRevenueCatIosApiKey(): string | null {
-  return readExtra('REVENUECAT_IOS_API_KEY');
+  return readExtra('REVENUECAT_IOS_API_KEY') ?? getRevenueCatSharedApiKey();
 }
 
 export function getRevenueCatAndroidApiKey(): string | null {
-  return readExtra('REVENUECAT_ANDROID_API_KEY');
+  return readExtra('REVENUECAT_ANDROID_API_KEY') ?? getRevenueCatSharedApiKey();
 }
 
 export function getRevenueCatApiKey(): string | null {

@@ -9,6 +9,7 @@ import Purchases, {
 
 import {
   REVENUECAT_PRODUCT_IDS,
+  LEGACY_REVENUECAT_PRODUCT_IDS,
   type SubscriptionPlanId,
 } from '@/config/subscriptionPlans';
 import {
@@ -16,6 +17,14 @@ import {
   getRevenueCatEntitlementId,
   isRevenueCatConfigured,
 } from '@/config/env';
+import {
+  logRevenueCatCustomerInfo,
+  logRevenueCatInit,
+  logRevenueCatOfferings,
+  logRevenueCatPurchaseResult,
+  logRevenueCatPurchaseStart,
+  logRevenueCatWarning,
+} from '@/services/subscription/revenueCatDebug';
 
 export type PlanPackages = Partial<Record<SubscriptionPlanId, PurchasesPackage>>;
 
@@ -31,6 +40,7 @@ export async function configureRevenueCat(appUserId?: string | null): Promise<bo
   const apiKey = getRevenueCatApiKey();
   if (!apiKey) {
     configured = false;
+    logRevenueCatInit({ configured: false, reason: 'missing API key' });
     return false;
   }
 
@@ -41,13 +51,28 @@ export async function configureRevenueCat(appUserId?: string | null): Promise<bo
       appUserID: appUserId ?? undefined,
     });
     configured = true;
-    return true;
+    logRevenueCatInit({
+      configured: true,
+      appUserId,
+      apiKeyPrefix: `${apiKey.slice(0, 16)}…`,
+    });
+  } else if (appUserId) {
+    const { customerInfo, created } = await Purchases.logIn(appUserId);
+    logRevenueCatCustomerInfo('logIn', customerInfo, { created });
+  } else {
+    const customerInfo = await Purchases.logOut();
+    logRevenueCatCustomerInfo('logOut', customerInfo);
   }
 
-  if (appUserId) {
-    await Purchases.logIn(appUserId);
-  } else {
-    await Purchases.logOut();
+  if (isRevenueCatReady()) {
+    try {
+      const customerInfo = await Purchases.getCustomerInfo();
+      logRevenueCatCustomerInfo('afterConfigure', customerInfo);
+    } catch (e) {
+      logRevenueCatWarning('Failed to fetch CustomerInfo after configure', {
+        error: e instanceof Error ? e.message : String(e),
+      });
+    }
   }
 
   return true;
@@ -55,12 +80,14 @@ export async function configureRevenueCat(appUserId?: string | null): Promise<bo
 
 export async function identifyRevenueCatUser(appUserId: string): Promise<void> {
   if (!isRevenueCatReady()) return;
-  await Purchases.logIn(appUserId);
+  const { customerInfo, created } = await Purchases.logIn(appUserId);
+  logRevenueCatCustomerInfo('identify', customerInfo, { created });
 }
 
 export async function resetRevenueCatUser(): Promise<void> {
   if (!isRevenueCatReady()) return;
-  await Purchases.logOut();
+  const customerInfo = await Purchases.logOut();
+  logRevenueCatCustomerInfo('reset', customerInfo);
 }
 
 export function productIdToPlanId(productId: string): SubscriptionPlanId | null {
@@ -70,7 +97,7 @@ export function productIdToPlanId(productId: string): SubscriptionPlanId | null 
   ][]) {
     if (id === productId) return planId;
   }
-  return null;
+  return LEGACY_REVENUECAT_PRODUCT_IDS[productId] ?? null;
 }
 
 export function planIdFromPackage(pkg: PurchasesPackage): SubscriptionPlanId | null {
@@ -89,34 +116,80 @@ export function planIdFromPackage(pkg: PurchasesPackage): SubscriptionPlanId | n
   }
 }
 
+/** Check SkinSense Pro via customerInfo.entitlements.active[entitlementId]. */
 export function syncPremiumFromCustomerInfo(customerInfo: CustomerInfo): {
   isPremium: boolean;
   planId: SubscriptionPlanId | null;
 } {
   const entitlementId = getRevenueCatEntitlementId();
-  const active = customerInfo.entitlements.active[entitlementId];
-  if (!active) {
-    return { isPremium: false, planId: null };
+  const skinSensePro = customerInfo.entitlements.active[entitlementId];
+
+  if (skinSensePro?.isActive) {
+    return {
+      isPremium: true,
+      planId: productIdToPlanId(skinSensePro.productIdentifier),
+    };
+  }
+
+  if (__DEV__) {
+    const activeKeys = Object.keys(customerInfo.entitlements.active);
+    if (activeKeys.length > 0) {
+      logRevenueCatWarning(
+        `Active entitlements found but "${entitlementId}" is missing. Check REVENUECAT_ENTITLEMENT_ID.`,
+        { activeEntitlementKeys: activeKeys },
+      );
+    }
+  }
+
+  return { isPremium: false, planId: null };
+}
+
+export type ActiveSubscriptionDetails = {
+  planId: SubscriptionPlanId | null;
+  expirationDate: string | null;
+  willRenew: boolean;
+  productId: string | null;
+};
+
+export function getActiveSubscriptionDetails(
+  customerInfo: CustomerInfo,
+): ActiveSubscriptionDetails {
+  const entitlementId = getRevenueCatEntitlementId();
+  const skinSensePro = customerInfo.entitlements.active[entitlementId];
+
+  if (!skinSensePro?.isActive) {
+    return {
+      planId: null,
+      expirationDate: null,
+      willRenew: false,
+      productId: null,
+    };
   }
 
   return {
-    isPremium: true,
-    planId: productIdToPlanId(active.productIdentifier),
+    planId: productIdToPlanId(skinSensePro.productIdentifier),
+    expirationDate: skinSensePro.expirationDate,
+    willRenew: skinSensePro.willRenew,
+    productId: skinSensePro.productIdentifier,
   };
 }
 
 export async function fetchRevenueCatOfferings(): Promise<{
   packages: PlanPackages;
   priceLabels: PlanPriceLabels;
+  currentOffering: PurchasesOfferings['current'];
 }> {
   if (!isRevenueCatReady()) {
-    return { packages: {}, priceLabels: {} };
+    return { packages: {}, priceLabels: {}, currentOffering: null };
   }
 
   const offerings: PurchasesOfferings = await Purchases.getOfferings();
+  logRevenueCatOfferings(offerings);
+
   const current = offerings.current;
   if (!current) {
-    return { packages: {}, priceLabels: {} };
+    logRevenueCatWarning('No current offering returned from RevenueCat');
+    return { packages: {}, priceLabels: {}, currentOffering: null };
   }
 
   const packages: PlanPackages = {};
@@ -129,20 +202,37 @@ export async function fetchRevenueCatOfferings(): Promise<{
     priceLabels[planId] = pkg.product.priceString;
   }
 
-  return { packages, priceLabels };
+  return { packages, priceLabels, currentOffering: current };
+}
+
+export async function getCurrentRevenueCatOffering(): Promise<PurchasesOfferings['current']> {
+  if (!isRevenueCatReady()) return null;
+  const offerings = await Purchases.getOfferings();
+  return offerings.current ?? null;
 }
 
 export async function getRevenueCatCustomerInfo(): Promise<CustomerInfo | null> {
   if (!isRevenueCatReady()) return null;
-  return Purchases.getCustomerInfo();
+  const customerInfo = await Purchases.getCustomerInfo();
+  logRevenueCatCustomerInfo('getCustomerInfo', customerInfo);
+  return customerInfo;
 }
 
 export async function purchaseRevenueCatPackage(
   pkg: PurchasesPackage,
-): Promise<{ customerInfo: CustomerInfo; planId: SubscriptionPlanId | null }> {
+  planId: SubscriptionPlanId,
+): Promise<{ customerInfo: CustomerInfo; planId: SubscriptionPlanId | null; isPremium: boolean }> {
+  logRevenueCatPurchaseStart(planId, pkg);
+
   const { customerInfo } = await Purchases.purchasePackage(pkg);
-  const { planId } = syncPremiumFromCustomerInfo(customerInfo);
-  return { customerInfo, planId };
+  const synced = syncPremiumFromCustomerInfo(customerInfo);
+  logRevenueCatPurchaseResult(customerInfo, synced.planId);
+
+  return {
+    customerInfo,
+    planId: synced.planId,
+    isPremium: synced.isPremium,
+  };
 }
 
 export async function restoreRevenueCatPurchases(): Promise<{
@@ -154,6 +244,7 @@ export async function restoreRevenueCatPurchases(): Promise<{
   }
 
   const customerInfo = await Purchases.restorePurchases();
+  logRevenueCatCustomerInfo('restore', customerInfo);
   return syncPremiumFromCustomerInfo(customerInfo);
 }
 
@@ -168,9 +259,15 @@ export function addRevenueCatCustomerInfoListener(
   if (!isRevenueCatReady()) {
     return () => {};
   }
-  Purchases.addCustomerInfoUpdateListener(listener);
+
+  const wrapped = (info: CustomerInfo) => {
+    logRevenueCatCustomerInfo('listener', info);
+    listener(info);
+  };
+
+  Purchases.addCustomerInfoUpdateListener(wrapped);
   return () => {
-    Purchases.removeCustomerInfoUpdateListener(listener);
+    Purchases.removeCustomerInfoUpdateListener(wrapped);
   };
 }
 

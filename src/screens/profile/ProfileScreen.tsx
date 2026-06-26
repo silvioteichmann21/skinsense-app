@@ -11,6 +11,7 @@ import { ProfileAvatar } from '@/components/profile/ProfileAvatar';
 import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { TabScreenHeader } from '@/components/ui/TabScreenHeader';
+import { SUBSCRIPTION_PLANS } from '@/config/subscriptionPlans';
 import type { MainTabParamList, RootStackParamList } from '@/core/navigation/types';
 import { useProfileMenu } from '@/i18n/content/useLocalizedContent';
 import { useTranslation } from '@/i18n/useTranslation';
@@ -155,12 +156,23 @@ export function ProfileScreen() {
   const { totalScans, streakDays, adherencePercent } = useActivityStats();
   const latestScan = useSkinStore((s) => s.latestAnalysis);
   const isPremium = useSubscriptionStore((s) => s.isPremium);
+  const activePlanId = useSubscriptionStore((s) => s.activePlanId);
+
+  const activePlanLabel = activePlanId
+    ? SUBSCRIPTION_PLANS.find((plan) => plan.id === activePlanId)
+    : null;
 
   const displayMenu = menu.map((item) =>
     item.action === 'upgrade'
       ? {
           ...item,
-          label: isPremium ? t('profile.menu.manageSubscription') : t('profile.menu.upgrade'),
+          label: isPremium
+            ? activePlanLabel
+              ? t('profile.menu.subscriptionWithPlan', {
+                  plan: t(activePlanLabel.periodKey),
+                })
+              : t('profile.menu.manageSubscription')
+            : t('profile.menu.upgrade'),
         }
       : item,
   );

@@ -16,6 +16,8 @@ module.exports = {
     plugins,
     extra: {
       ...appJson.expo.extra,
+      REVENUECAT_API_KEY:
+        process.env.REVENUECAT_API_KEY ?? appJson.expo.extra.REVENUECAT_API_KEY,
       REVENUECAT_IOS_API_KEY:
         process.env.REVENUECAT_IOS_API_KEY ?? appJson.expo.extra.REVENUECAT_IOS_API_KEY,
       REVENUECAT_ANDROID_API_KEY:

@@ -38,9 +38,10 @@
       "API_BASE_URL": "",
       "SUPABASE_URL": "https://afixdzyeybxgcqpbynud.supabase.co",
       "SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFmaXhkenlleWJ4Z2NxcGJ5bnVkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MzcwMDEsImV4cCI6MjA5NjAxMzAwMX0.vUUquuJcKB4khjJ6VFlKOokjCRwCzGACaXzFcqYZqPU",
-      "REVENUECAT_ENTITLEMENT_ID": "pro",
-      "REVENUECAT_IOS_API_KEY": "",
-      "REVENUECAT_ANDROID_API_KEY": ""
+      "REVENUECAT_ENTITLEMENT_ID": "SkinSense Pro",
+      "REVENUECAT_API_KEY": "test_GqJLMiBCphYFVOzEyJVUdYDCtCh",
+      "REVENUECAT_IOS_API_KEY": "test_GqJLMiBCphYFVOzEyJVUdYDCtCh",
+      "REVENUECAT_ANDROID_API_KEY": "test_GqJLMiBCphYFVOzEyJVUdYDCtCh"
     },
     "plugins": [
       "expo-asset",
